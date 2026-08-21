@@ -53,19 +53,12 @@ function normalizeReport(report, req) {
   };
 }
 
-app.get("/", (req, res) => {
-  res.json({
-    name: "CivicPort API",
-    status: "ok",
-  });
-});
-
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
+    service: "civicport-api",
   });
 });
-
 
 app.get("/api/health", (_, res) => res.json({ ok: true, service: "CivicPort API" }));
 
@@ -127,6 +120,144 @@ app.get("/api/stats", async (_, res) => {
 
     res.status(500).json({
       error: "Failed to load dashboard statistics",
+    });
+  }
+});
+
+app.get("/api/geocode/reverse", async (req, res) => {
+  try {
+    const lat = Number(req.query.lat);
+    const lon = Number(req.query.lon);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lon)
+    ) {
+      return res.status(400).json({
+        error: "Valid latitude and longitude are required."
+      });
+    }
+
+    const url = new URL(
+      "https://nominatim.openstreetmap.org/reverse"
+    );
+
+    url.searchParams.set(
+      "format",
+      "jsonv2"
+    );
+
+    url.searchParams.set(
+      "lat",
+      String(lat)
+    );
+
+    url.searchParams.set(
+      "lon",
+      String(lon)
+    );
+
+    url.searchParams.set(
+      "zoom",
+      "18"
+    );
+
+    url.searchParams.set(
+      "addressdetails",
+      "1"
+    );
+
+    url.searchParams.set(
+      "accept-language",
+      "en"
+    );
+
+    const response = await fetch(
+      url.toString(),
+      {
+        headers: {
+          "User-Agent":
+            "CivicPort/1.0 (+https://civicportng.onrender.com)"
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Geocoding service returned ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    const address =
+      data.address || {};
+
+    const road =
+      address.road ||
+      address.pedestrian ||
+      address.highway ||
+      address.residential ||
+      "";
+
+    const area =
+      address.neighbourhood ||
+      address.suburb ||
+      address.quarter ||
+      address.city_district ||
+      "";
+
+    const city =
+      address.city ||
+      address.town ||
+      address.municipality ||
+      address.village ||
+      "";
+
+    const state =
+      address.state ||
+      "";
+
+    const parts = [
+      road,
+      area,
+      city,
+      state
+    ].filter(Boolean);
+
+    const uniqueParts = [
+      ...new Map(
+        parts.map(part => [
+          part.toLowerCase(),
+          part
+        ])
+      ).values()
+    ];
+
+    const locationLabel =
+      uniqueParts.length > 0
+        ? uniqueParts.join(", ")
+        : data.display_name ||
+          `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+
+    res.json({
+      locationLabel,
+      displayName:
+        data.display_name || locationLabel,
+      address,
+      latitude: lat,
+      longitude: lon
+    });
+
+  } catch (error) {
+    console.error(
+      "Reverse geocoding failed:",
+      error
+    );
+
+    res.status(500).json({
+      error:
+        "Unable to identify this location."
     });
   }
 });
