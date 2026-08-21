@@ -1,5 +1,25 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowRight, CheckCircle2, Filter, Map, Search, ShieldCheck, Siren } from "lucide-react";
+
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer
+} from "react-leaflet";
+
+import L from "leaflet";
+
+import {
+  Activity,
+  ArrowRight,
+  CheckCircle2,
+  Filter,
+  Map,
+  Search,
+  ShieldCheck,
+  Siren
+} from "lucide-react";
+
 import Logo from "../components/Logo";
 import ReportCard from "../components/ReportCard";
 import IssueMap from "../components/IssueMap";
@@ -7,7 +27,6 @@ import Modal from "../components/Modal";
 import Timeline from "../components/Timeline";
 import StatusBadge from "../components/StatusBadge";
 import { api } from "../services/api";
-import L from "leaflet";
 
 const userLocationIcon = L.divIcon({
   className: "civicport-user-location",
@@ -150,6 +169,57 @@ export default function PublicDashboard() {
   );
 }
 
+function LocationPicker({
+  latitude,
+  longitude,
+  accuracy,
+  locationLabel
+}) {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null;
+  }
+
+  return (
+    <div className="location-map-wrapper">
+      <MapContainer
+        key={`${lat}-${lng}`}
+        center={[lat, lng]}
+        zoom={17}
+        scrollWheelZoom={true}
+        style={{
+          width: "100%",
+          height: "240px"
+        }}
+      >
+        <TileLayer
+          attribution='&copy; OpenStreetMap contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        <Marker
+          position={[lat, lng]}
+          icon={userLocationIcon}
+        >
+          <Popup>
+            <strong>You are here</strong>
+            <br />
+            {locationLabel || "Location detected"}
+            <br />
+            <small>
+              {accuracy
+                ? `GPS accuracy: ±${Math.round(Number(accuracy))}m`
+                : "GPS accuracy unavailable"}
+            </small>
+          </Popup>
+        </Marker>
+      </MapContainer>
+    </div>
+  );
+}
+
 function ReportForm({ onClose, onCreated }) {
   const [form, setForm] = useState({
     title: "",
@@ -157,232 +227,193 @@ function ReportForm({ onClose, onCreated }) {
     description: "",
     latitude: "",
     longitude: "",
-    locationLabel: "",
-    accuracy: ""
+    accuracy: "",
+    locationLabel: ""
   });
 
   const [photo, setPhoto] = useState(null);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [locationDetected, setLocationDetected] = useState(false);
 
   async function reverseGeocode(latitude, longitude) {
-    const params = new URLSearchParams({
-      format: "jsonv2",
-      lat: latitude,
-      lon: longitude,
-      zoom: "18",
-      addressdetails: "1",
-      layer: "address"
-    });
+    try {
+      const url = new URL(
+        "https://nominatim.openstreetmap.org/reverse"
+      );
 
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?${params.toString()}`,
-      {
-        headers: {
-          Accept: "application/json"
-        }
+      url.searchParams.set("format", "jsonv2");
+      url.searchParams.set("lat", latitude);
+      url.searchParams.set("lon", longitude);
+      url.searchParams.set("zoom", "18");
+      url.searchParams.set("addressdetails", "1");
+      url.searchParams.set(
+        "accept-language",
+        "en"
+      );
+
+      const response = await fetch(url.toString());
+
+      if (!response.ok) {
+        throw new Error(
+          `Reverse geocoding failed: ${response.status}`
+        );
       }
-    );
 
-    if (!response.ok) {
-      throw new Error("Unable to identify the location name.");
+      const data = await response.json();
+
+      const address = data?.address || {};
+
+      const road =
+        address.road ||
+        address.pedestrian ||
+        address.highway ||
+        "";
+
+      const area =
+        address.neighbourhood ||
+        address.suburb ||
+        address.quarter ||
+        "";
+
+      const city =
+        address.city ||
+        address.town ||
+        address.municipality ||
+        address.village ||
+        "";
+
+      const state =
+        address.state ||
+        "";
+
+      const parts = [
+        road,
+        area,
+        city,
+        state
+      ].filter(Boolean);
+
+      const uniqueParts = [
+        ...new Map(
+          parts.map(part => [
+            part.toLowerCase(),
+            part
+          ])
+        ).values()
+      ];
+
+      return (
+        uniqueParts.length
+          ? uniqueParts.join(", ")
+          : data?.display_name ||
+            `${Number(latitude).toFixed(6)}, ${Number(longitude).toFixed(6)}`
+      );
+
+    } catch (error) {
+      console.error(
+        "Reverse geocoding failed:",
+        error
+      );
+
+      /*
+       * Never allow reverse geocoding
+       * to break the report form.
+       */
+
+      return `${Number(latitude).toFixed(6)}, ${Number(
+        longitude
+      ).toFixed(6)}`;
     }
-
-    const data = await response.json();
-
-    if (!data || !data.address) {
-      throw new Error("No readable address was found for this location.");
-    }
-
-    const address = data.address;
-
-    /*
-      Nominatim may return different administrative fields
-      depending on the location.
-
-      For Lagos/Nigeria we prioritize:
-
-      road
-      neighbourhood
-      suburb
-      city/town/village
-      state
-      country
-    */
-
-    const road =
-      address.road ||
-      address.pedestrian ||
-      address.footway ||
-      address.highway;
-
-    const neighbourhood =
-      address.neighbourhood ||
-      address.quarter ||
-      address.suburb ||
-      address.village;
-
-    const city =
-      address.city ||
-      address.town ||
-      address.municipality ||
-      address.village;
-
-    const state = address.state;
-
-    const parts = [];
-
-    if (road) parts.push(road);
-
-    if (
-      neighbourhood &&
-      neighbourhood.toLowerCase() !== road?.toLowerCase()
-    ) {
-      parts.push(neighbourhood);
-    }
-
-    if (
-      city &&
-      !parts.some(
-        p => p.toLowerCase() === city.toLowerCase()
-      )
-    ) {
-      parts.push(city);
-    }
-
-    if (
-      state &&
-      !parts.some(
-        p => p.toLowerCase() === state.toLowerCase()
-      )
-    ) {
-      parts.push(state);
-    }
-
-    const readableLocation =
-      parts.length > 0
-        ? parts.join(", ")
-        : data.display_name || "Location detected";
-
-    return {
-      label: readableLocation,
-      fullAddress: data.display_name || readableLocation,
-      address
-    };
   }
 
   function locate() {
     if (!navigator.geolocation) {
       setError(
-        "Your browser does not support GPS location."
+        "Your browser does not support location detection."
       );
       return;
     }
 
     setLocating(true);
     setError("");
-    setLocationDetected(false);
 
     navigator.geolocation.getCurrentPosition(
       async position => {
-        try {
-          const {
-            latitude,
-            longitude,
-            accuracy
-          } = position.coords;
+        const {
+          latitude,
+          longitude,
+          accuracy
+        } = position.coords;
 
-          /*
-            First save the precise GPS position immediately.
-          */
+        /*
+         * Immediately save the GPS position.
+         */
 
-          setForm(previous => ({
-            ...previous,
-            latitude,
-            longitude,
-            accuracy
-          }));
+        setForm(previous => ({
+          ...previous,
+          latitude,
+          longitude,
+          accuracy,
+          locationLabel: "Identifying location..."
+        }));
 
-          /*
-            Now convert GPS coordinates into
-            a human-readable address.
-          */
+        /*
+         * Then resolve the coordinates into
+         * a human-readable location.
+         */
 
-          const location = await reverseGeocode(
+        const locationName =
+          await reverseGeocode(
             latitude,
             longitude
           );
 
-          setForm(previous => ({
-            ...previous,
-            latitude,
-            longitude,
-            accuracy,
-            locationLabel: location.label
-          }));
+        setForm(previous => ({
+          ...previous,
+          latitude,
+          longitude,
+          accuracy,
+          locationLabel: locationName
+        }));
 
-          setLocationDetected(true);
-        } catch (geocodeError) {
-          console.error(
-            "Reverse geocoding failed:",
-            geocodeError
-          );
-
-          /*
-            GPS is still valid even if the address
-            lookup fails.
-          */
-
-          setForm(previous => ({
-            ...previous,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            locationLabel:
-              `${position.coords.latitude.toFixed(6)}, ` +
-              `${position.coords.longitude.toFixed(6)}`
-          }));
-
-          setLocationDetected(true);
-
-          setError(
-            "GPS location detected, but the street name could not be identified."
-          );
-        } finally {
-          setLocating(false);
-        }
+        setLocating(false);
       },
 
       error => {
-        console.error("Geolocation error:", error);
+        console.error(
+          "GPS location error:",
+          error
+        );
 
-        let message =
-          "Unable to determine your location.";
+        setLocating(false);
 
         if (
           error.code ===
           error.PERMISSION_DENIED
         ) {
-          message =
-            "Location permission was denied. Please allow location access in your browser and try again.";
+          setError(
+            "Location permission was denied. Please allow location access in your browser."
+          );
         } else if (
           error.code ===
           error.POSITION_UNAVAILABLE
         ) {
-          message =
-            "Your current location could not be determined. Please try again outdoors or enable GPS.";
+          setError(
+            "Your current location could not be determined."
+          );
         } else if (
           error.code ===
           error.TIMEOUT
         ) {
-          message =
-            "Location detection timed out. Please try again.";
+          setError(
+            "Location detection timed out. Please try again."
+          );
+        } else {
+          setError(
+            "Unable to determine your location."
+          );
         }
-
-        setError(message);
-        setLocating(false);
       },
 
       {
@@ -400,26 +431,28 @@ function ReportForm({ onClose, onCreated }) {
     setError("");
 
     try {
-      /*
-        Prevent accidental submission without
-        location if CivicPort requires location.
-      */
-
       if (!form.latitude || !form.longitude) {
         throw new Error(
-          "Please detect your location before submitting the report."
+          "Please capture your location before submitting."
         );
       }
 
       const fd = new FormData();
 
-      fd.append("title", form.title);
-      fd.append("category", form.category);
-      fd.append("description", form.description);
+      fd.append(
+        "title",
+        form.title
+      );
 
-      /*
-        Precise GPS coordinates
-      */
+      fd.append(
+        "category",
+        form.category
+      );
+
+      fd.append(
+        "description",
+        form.description
+      );
 
       fd.append(
         "latitude",
@@ -431,19 +464,13 @@ function ReportForm({ onClose, onCreated }) {
         String(form.longitude)
       );
 
-      /*
-        Human-readable location
-      */
-
       fd.append(
         "locationLabel",
         form.locationLabel ||
-          `${Number(form.latitude).toFixed(6)}, ${Number(form.longitude).toFixed(6)}`
+          `${Number(form.latitude).toFixed(6)}, ${Number(
+            form.longitude
+          ).toFixed(6)}`
       );
-
-      /*
-        GPS accuracy metadata
-      */
 
       if (form.accuracy) {
         fd.append(
@@ -453,15 +480,27 @@ function ReportForm({ onClose, onCreated }) {
       }
 
       if (photo) {
-        fd.append("photo", photo);
+        fd.append(
+          "photo",
+          photo
+        );
       }
 
-      const report = await api.createReport(fd);
+      const report =
+        await api.createReport(fd);
 
       onCreated(report);
-    } catch (e) {
-      console.error("Report submission failed:", e);
-      setError(e.message || "Unable to submit report.");
+
+    } catch (error) {
+      console.error(
+        "Report submission failed:",
+        error
+      );
+
+      setError(
+        error.message ||
+          "Unable to submit civic report."
+      );
     } finally {
       setSaving(false);
     }
@@ -469,17 +508,20 @@ function ReportForm({ onClose, onCreated }) {
 
   return (
     <Modal onClose={onClose}>
+
       <div className="modal-header">
         <div>
           <div className="eyebrow">
             NEW CIVIC REPORT
           </div>
 
-          <h2>Make the issue visible.</h2>
+          <h2>
+            Make the issue visible.
+          </h2>
 
           <p>
-            Give the responsible team enough evidence
-            to act.
+            Give the responsible team enough
+            evidence to act.
           </p>
         </div>
       </div>
@@ -488,6 +530,7 @@ function ReportForm({ onClose, onCreated }) {
         onSubmit={submit}
         className="form"
       >
+
         <label>
           Issue title
 
@@ -500,9 +543,10 @@ function ReportForm({ onClose, onCreated }) {
                 title: e.target.value
               })
             }
-            placeholder="e.g. Large pothole on Opebi Road"
+            placeholder="e.g. Large pothole on Ikeja road"
           />
         </label>
+
 
         <label>
           Category
@@ -529,6 +573,7 @@ function ReportForm({ onClose, onCreated }) {
           </select>
         </label>
 
+
         <label>
           Description
 
@@ -546,6 +591,7 @@ function ReportForm({ onClose, onCreated }) {
           />
         </label>
 
+
         <label>
           Photo
 
@@ -555,16 +601,20 @@ function ReportForm({ onClose, onCreated }) {
             capture="environment"
             onChange={e =>
               setPhoto(
-                e.target.files?.[0] || null
+                e.target.files?.[0] ||
+                null
               )
             }
           />
         </label>
 
+
         {/* LOCATION */}
 
         <div className="location-box">
+
           <div className="location-header">
+
             <div>
               <strong>
                 📍 Report location
@@ -572,7 +622,7 @@ function ReportForm({ onClose, onCreated }) {
 
               <span>
                 {locating
-                  ? "Detecting your location..."
+                  ? "Detecting your exact location..."
                   : form.locationLabel ||
                     "Location not captured yet"}
               </span>
@@ -590,133 +640,87 @@ function ReportForm({ onClose, onCreated }) {
                   ? "Update location"
                   : "Use my location"}
             </button>
+
           </div>
 
-          {/* MINI MAP */}
 
           {form.latitude &&
             form.longitude && (
-              <div
-                style={{
-                  marginTop: "14px",
-                  borderRadius: "14px",
-                  overflow: "hidden",
-                  height: "240px",
-                  border:
-                    "1px solid rgba(0,0,0,0.08)"
-                }}
-              >
-                <MapContainer
-                  center={[
-                    Number(form.latitude),
-                    Number(form.longitude)
-                  ]}
-                  zoom={17}
-                  scrollWheelZoom={false}
-                  dragging={true}
-                  doubleClickZoom={false}
-                  className="location-mini-map"
-                  style={{
-                    width: "100%",
-                    height: "100%"
-                  }}
-                >
-                  <TileLayer
-                    attribution='&copy; OpenStreetMap contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
 
-                  <Marker
-                    position={[
-                      Number(form.latitude),
-                      Number(form.longitude)
-                    ]}
-                    icon={userLocationIcon}
-                  >
-                    <Popup>
-                      <strong>
-                        You are here
-                      </strong>
+              <>
 
-                      <br />
+                <LocationPicker
+                  latitude={form.latitude}
+                  longitude={form.longitude}
+                  accuracy={form.accuracy}
+                  locationLabel={
+                    form.locationLabel
+                  }
+                />
 
-                      {form.locationLabel}
 
-                      <br />
+                <div className="location-details">
 
-                      <small>
-                        Accuracy:{" "}
-                        {form.accuracy
-                          ? `±${Math.round(
-                              Number(
-                                form.accuracy
-                              )
-                            )}m`
-                          : "Unknown"}
-                      </small>
-                    </Popup>
-                  </Marker>
-                </MapContainer>
-              </div>
-            )}
-
-          {/* LOCATION DETAILS */}
-
-          {form.latitude &&
-            form.longitude && (
-              <div className="location-details">
-                <div>
-                  <span>
-                    Location
-                  </span>
-
-                  <strong>
-                    {form.locationLabel}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    GPS coordinates
-                  </span>
-
-                  <strong>
-                    {Number(
-                      form.latitude
-                    ).toFixed(6)}
-                    ,{" "}
-                    {Number(
-                      form.longitude
-                    ).toFixed(6)}
-                  </strong>
-                </div>
-
-                {form.accuracy && (
                   <div>
                     <span>
-                      GPS accuracy
+                      Location
                     </span>
 
                     <strong>
-                      ±
-                      {Math.round(
-                        Number(
-                          form.accuracy
-                        )
-                      )}
-                      m
+                      {form.locationLabel}
                     </strong>
                   </div>
+
+
+                  <div>
+                    <span>
+                      Coordinates
+                    </span>
+
+                    <strong>
+                      {Number(
+                        form.latitude
+                      ).toFixed(6)}
+                      {", "}
+                      {Number(
+                        form.longitude
+                      ).toFixed(6)}
+                    </strong>
+                  </div>
+
+
+                  {form.accuracy && (
+                    <div>
+                      <span>
+                        GPS Accuracy
+                      </span>
+
+                      <strong>
+                        ±
+                        {Math.round(
+                          Number(
+                            form.accuracy
+                          )
+                        )}
+                        m
+                      </strong>
+                    </div>
+                  )}
+
+                </div>
+
+
+                {!locating && (
+                  <div className="location-success">
+                    ✓ Location captured
+                  </div>
                 )}
-              </div>
+
+              </>
             )}
 
-          {locationDetected && (
-            <div className="location-success">
-              ✓ Location detected and identified
-            </div>
-          )}
         </div>
+
 
         {error && (
           <div className="form-error">
@@ -724,17 +728,25 @@ function ReportForm({ onClose, onCreated }) {
           </div>
         )}
 
+
         <button
           className="btn btn-primary btn-large"
-          disabled={saving || locating}
+          disabled={
+            saving ||
+            locating
+          }
         >
           {saving
             ? "Submitting..."
             : "Submit civic report"}
 
-          <ArrowRight size={18} />
+          <ArrowRight
+            size={18}
+          />
         </button>
+
       </form>
+
     </Modal>
   );
 }
