@@ -264,6 +264,6 @@ app.use((error, _, res, __) => {
   res.status(400).json({ error: error.message || "Request failed." });
 });
 
-app.listen(PORT, () => {
-  console.log(`CivicPort API running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`CivicPort API running on port ${PORT}`);
 });
