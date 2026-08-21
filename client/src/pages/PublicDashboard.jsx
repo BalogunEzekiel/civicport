@@ -327,7 +327,7 @@ function ReportForm({ onClose, onCreated }) {
     }
   }
 
-  function locate() {
+  async function locate() {
     if (!navigator.geolocation) {
       setError(
         "Your browser does not support location detection."
@@ -339,16 +339,39 @@ function ReportForm({ onClose, onCreated }) {
     setError("");
 
     navigator.geolocation.getCurrentPosition(
-      async position => {
+      async (position) => {
         const {
           latitude,
           longitude,
           accuracy
         } = position.coords;
 
-        /*
-         * Immediately save the GPS position.
-         */
+        console.log("CivicPort GPS:", {
+          latitude,
+          longitude,
+          accuracy
+        });
+
+        // Reject obviously poor location estimates.
+        if (accuracy > 1000) {
+          setLocating(false);
+
+          setForm(previous => ({
+            ...previous,
+            latitude,
+            longitude,
+            accuracy,
+            locationLabel: ""
+          }));
+
+          setError(
+            `Location detected, but accuracy is too low (±${Math.round(
+              accuracy
+            )}m). Please enable precise location access and try again.`
+          );
+
+          return;
+        }
 
         setForm(previous => ({
           ...previous,
@@ -358,54 +381,73 @@ function ReportForm({ onClose, onCreated }) {
           locationLabel: "Identifying location..."
         }));
 
-        /*
-         * Then resolve the coordinates into
-         * a human-readable location.
-         */
-
-        const locationName =
-          await reverseGeocode(
-            latitude,
-            longitude
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/geocode/reverse?lat=${encodeURIComponent(
+              latitude
+            )}&lon=${encodeURIComponent(
+              longitude
+            )}`
           );
 
-        setForm(previous => ({
-          ...previous,
-          latitude,
-          longitude,
-          accuracy,
-          locationLabel: locationName
-        }));
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.error || "Unable to identify location."
+            );
+          }
+
+          setForm(previous => ({
+            ...previous,
+            latitude,
+            longitude,
+            accuracy,
+            locationLabel:
+              data.locationLabel ||
+              `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+          }));
+
+        } catch (error) {
+          console.error(
+            "CivicPort reverse geocoding failed:",
+            error
+          );
+
+          setForm(previous => ({
+            ...previous,
+            latitude,
+            longitude,
+            accuracy,
+            locationLabel:
+              `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+          }));
+
+          setError(
+            "GPS location captured, but the street name could not be identified. The coordinates will still be saved."
+          );
+        }
 
         setLocating(false);
       },
 
-      error => {
+      (error) => {
         console.error(
-          "GPS location error:",
+          "CivicPort GPS error:",
           error
         );
 
         setLocating(false);
 
-        if (
-          error.code ===
-          error.PERMISSION_DENIED
-        ) {
+        if (error.code === 1) {
           setError(
-            "Location permission was denied. Please allow location access in your browser."
+            "Location permission was denied. Please allow location access and try again."
           );
-        } else if (
-          error.code ===
-          error.POSITION_UNAVAILABLE
-        ) {
+        } else if (error.code === 2) {
           setError(
-            "Your current location could not be determined."
+            "Your location could not be determined. Please check your device location settings."
           );
-        } else if (
-          error.code ===
-          error.TIMEOUT
-        ) {
+        } else if (error.code === 3) {
           setError(
             "Location detection timed out. Please try again."
           );
@@ -418,7 +460,7 @@ function ReportForm({ onClose, onCreated }) {
 
       {
         enableHighAccuracy: true,
-        timeout: 20000,
+        timeout: 30000,
         maximumAge: 0
       }
     );
