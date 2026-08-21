@@ -54,11 +54,10 @@ function normalizeReport(report, req) {
 }
 
 
-app.get("/", (req, res) => {
-  res.json({
-    name: "CivicPort API",
+app.get("/health", (req, res) => {
+  res.status(200).json({
     status: "ok",
-    version: "1.0.0",
+    service: "civicport-api",
   });
 });
 
