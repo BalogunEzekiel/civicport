@@ -1,0 +1,2248 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+
+:root{
+  --ink:#10231e;--muted:#64756f;--line:#e4ebe7;--paper:#f7faf8;--white:#fff;
+  --green:#0f6b4f;--green-2:#16805e;--mint:#e7f5ef;--gold:#d7a43b;--red:#c84c4c;
+  --shadow:0 20px 60px rgba(16,35,30,.08);--radius:18px;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif} button,input,select,textarea{font:inherit} button{cursor:pointer}
+h1,h2,h3{font-family:Manrope,sans-serif;margin:0;letter-spacing:-.035em} p{color:var(--muted);line-height:1.65}.app-shell{min-height:100vh}
+.topbar{height:78px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 5.5%;gap:35px;position:sticky;top:0;z-index:20}.brand{display:flex;align-items:center;gap:10px;font:800 20px Manrope;color:var(--ink)}.brand span span{color:var(--green)}.brand-mark{width:35px;height:35px;border-radius:11px;background:var(--green);color:#fff;display:grid;place-items:center}.brand-light{color:#fff}.brand-light span span{color:#bfe9d9}
+.topbar nav{display:flex;gap:25px;margin-left:auto}.topbar nav a{color:var(--muted);text-decoration:none;font-size:14px}.btn{border:0;border-radius:11px;padding:11px 16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;transition:.2s}.btn-primary{background:var(--green);color:#fff}.btn-primary:hover{background:#0b573f;transform:translateY(-1px)}.btn-outline{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn-ghost{background:transparent;color:var(--ink)}.btn-large{padding:14px 20px}
+.hero{padding:86px 8% 75px;display:grid;grid-template-columns:1.25fr .75fr;gap:7%;align-items:center;background:linear-gradient(135deg,#f7faf8 40%,#edf7f2)}.eyebrow{font-size:11px;letter-spacing:.14em;font-weight:800;color:var(--green);display:flex;align-items:center;gap:8px}.eyebrow span{width:7px;height:7px;background:var(--gold);border-radius:50%}.hero h1{font-size:clamp(42px,5vw,72px);line-height:1.02;margin:18px 0 20px;max-width:780px}.hero h1 em{color:var(--green);font-style:normal}.hero-copy>p{font-size:18px;max-width:650px}.hero-actions{display:flex;gap:12px;margin-top:30px}.hero-panel{background:#10352b;color:#fff;border-radius:25px;padding:30px;box-shadow:var(--shadow);min-height:310px;position:relative;overflow:hidden}.hero-panel:after{content:"";position:absolute;width:240px;height:240px;border-radius:50%;border:1px solid rgba(255,255,255,.12);right:-70px;bottom:-100px}.panel-top{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.12em;color:#b8d4ca}.live{color:#bfe9d9}.live i{display:inline-block;width:6px;height:6px;background:#72d3a8;border-radius:50%;margin-right:5px}.pulse-number{font:800 80px Manrope;line-height:1;margin-top:42px}.hero-panel p{color:#b8d4ca;margin-top:3px}.pulse-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid rgba(255,255,255,.15);margin-top:30px;padding-top:18px;gap:15px}.pulse-grid div{display:flex;flex-direction:column}.pulse-grid strong{font-size:22px}.pulse-grid span{font-size:11px;color:#a6c3b9}
+.impact-strip{background:#fff;display:grid;grid-template-columns:repeat(3,1fr);padding:25px 8%;border-bottom:1px solid var(--line);gap:30px}.impact-strip>div{display:flex;gap:14px;align-items:center}.impact-strip svg{color:var(--green)}.impact-strip strong,.impact-strip span{display:block}.impact-strip span{font-size:12px;color:var(--muted);margin-top:3px}
+.content-section{padding:80px 7%}.section-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:28px}.section-heading h2{font-size:34px;margin-top:8px}.filters{display:grid;grid-template-columns:1fr 190px 180px auto;gap:10px;margin-bottom:25px}.search{height:46px;border:1px solid var(--line);background:#fff;border-radius:11px;display:flex;align-items:center;padding:0 13px;gap:9px;color:#83918c}.search input{border:0;outline:0;width:100%;background:transparent}.filters select,.form select,.form input,.form textarea,.admin-controls input,.admin-controls select,.admin-controls textarea{height:46px;border:1px solid var(--line);background:#fff;border-radius:11px;padding:0 12px;outline:none;color:var(--ink)}.form textarea,.admin-controls textarea{height:auto;padding:12px;resize:vertical}.report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.report-card{border:1px solid var(--line);background:#fff;border-radius:17px;overflow:hidden;text-align:left;padding:0;box-shadow:0 5px 25px rgba(16,35,30,.03);transition:.25s}.report-card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}.report-image{height:190px;background:#eaf0ed;position:relative;overflow:hidden}.report-image img{width:100%;height:100%;object-fit:cover}.image-placeholder{height:100%;display:grid;place-items:center;font:800 30px Manrope;color:#c1cec8}.category-pill{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.9);padding:6px 9px;border-radius:8px;font-size:10px;font-weight:800;text-transform:uppercase}.report-body{padding:19px}.report-ref{font-size:10px;color:var(--green);letter-spacing:.1em;font-weight:800}.report-card h3{font-size:18px;margin:5px 0 8px}.report-card p{font-size:13px;margin:0 0 15px;display:-webkit-box;-webkit-box-orient: vertical;-webkit-line-clamp:2;  line-clamp: 2;
+-webkit-box-orient:vertical;overflow:hidden}.report-meta{font-size:12px;color:var(--muted);display:flex;gap:5px;align-items:center}.report-footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px}.status-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:6px 9px;font-size:10px;font-weight:800}.status-submitted{background:#edf2f0;color:#65736e}.status-review{background:#fff5d9;color:#966e18}.status-assigned{background:#eee9ff;color:#684bc1}.status-progress{background:#e6f2ff;color:#1f6da7}.status-resolved{background:#e5f6ed;color:#18724e}.status-rejected{background:#fdeaea;color:#a83939}.empty,.loading{text-align:center;padding:60px;color:var(--muted)}.map{height:600px;border-radius:18px;overflow:hidden;border:1px solid var(--line)}.popup-link{margin-top:7px;border:0;background:none;color:var(--green);font-weight:700;padding:0}
+footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);background:#fff;color:var(--muted);font-size:12px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(8,22,18,.62);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px;z-index:100}.modal{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;padding:30px;position:relative;box-shadow:0 30px 100px rgba(0,0,0,.2)}.modal-wide{width:min(920px,100%)}.modal-close{position:absolute;right:16px;top:12px;border:0;background:#f1f4f2;border-radius:50%;width:34px;height:34px;font-size:22px;color:var(--muted)}.modal-header{display:flex;justify-content:space-between;gap:20px;align-items:start;margin-bottom:22px}.modal-header h2,.admin-detail-head h2{font-size:30px;margin:5px 0}.modal-header p,.admin-detail-head p{margin:0;font-size:13px}.form{display:grid;gap:16px}.form label,.admin-controls label{display:grid;gap:7px;font-size:12px;font-weight:800;color:#465650}.location-box{display:flex;justify-content:space-between;align-items:center;background:var(--mint);padding:14px;border-radius:12px}.location-box div{display:grid;gap:3px}.location-box span{font-size:11px;color:var(--muted)}.form-error{background:#fff0f0;color:#a33b3b;border-radius:9px;padding:10px;font-size:12px}.detail-photo{width:100%;max-height:360px;object-fit:cover;border-radius:13px;margin-bottom:18px}.detail-description{font-size:14px}.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.detail-grid div{background:#f5f8f6;border-radius:11px;padding:12px}.detail-grid span,.detail-grid strong{display:block}.detail-grid span{font-size:10px;color:var(--muted);text-transform:uppercase}.detail-grid strong{font-size:13px;margin-top:5px}.subheading{font-size:16px;margin:25px 0 13px}.timeline{border-left:1px solid #dbe4df;margin-left:10px}.timeline-item{display:grid;grid-template-columns:30px 1fr;position:relative;min-height:72px}.timeline-dot{width:20px;height:20px;border-radius:50%;background:#edf2ef;border:4px solid #fff;box-shadow:0 0 0 1px #dbe4df;display:grid;place-items:center;color:#fff;margin-left:-10px}.timeline-item.done .timeline-dot{background:var(--green);box-shadow:0 0 0 1px var(--green)}.timeline-content{padding:0 0 18px 5px}.timeline-head{display:flex;gap:8px;align-items:center}.timeline-content p{font-size:12px;margin:5px 0}.timeline-content small{font-size:10px;color:#9aa7a2}.update-photo{width:130px;height:90px;object-fit:cover;border-radius:9px;margin:5px}
+.admin-shell{min-height:100vh;display:flex;background:#f4f7f5}.sidebar{width:245px;background:#0d2d25;color:#fff;padding:25px 18px;display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0}.sidebar .brand{margin:4px 8px 55px}.side-label{font-size:9px;letter-spacing:.14em;color:#7d9b90;margin:0 13px 10px}.sidebar a{display:flex;align-items:center;gap:12px;padding:12px 13px;border-radius:10px;color:#bdd0c9;text-decoration:none;font-size:13px;margin-bottom:4px}.sidebar a.active,.sidebar a:hover{background:#16463a;color:#fff}.sidebar-bottom{margin-top:auto}.admin-main{margin-left:245px;padding:45px 5%;width:calc(100% - 245px)}.admin-top{display:flex;justify-content:space-between;align-items:start;margin-bottom:28px}.admin-top h1{font-size:36px;margin-top:6px}.admin-kpis {display: grid;grid-template-columns: repeat(5, minmax(0, 1fr));gap: 15px;margin-bottom: 22px;}.admin-kpi{background:#fff;border:1px solid var(--line);border-radius:15px;padding:20px;display:flex;align-items:center;gap:15px}.admin-kpi>span{width:40px;height:40px;border-radius:11px;background:var(--mint);color:var(--green);display:grid;place-items:center}.admin-kpi strong{display:block;font:800 25px Manrope}.admin-kpi small{color:var(--muted);font-size:11px}.admin-card{background:#fff;border:1px solid var(--line);border-radius:17px;overflow:hidden}.table-toolbar{padding:20px 22px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}.table-toolbar h2{font-size:18px}.table-toolbar span{font-size:11px;color:var(--muted)}.table-toolbar .search{width:300px}table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;background:#f8faf9;color:#73817c;text-transform:uppercase;letter-spacing:.08em;font-size:9px;padding:13px 18px}td{padding:15px 18px;border-top:1px solid #eef2f0;vertical-align:middle}td strong,td small{display:block}td small{font-size:10px;color:var(--muted);margin-top:3px}.priority{font-size:10px;font-weight:800}.priority-critical,.priority-high{color:#b23b3b}.priority-medium{color:#9a741a}.priority-low{color:var(--green)}.icon-button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px;color:var(--muted)}.admin-detail-head{display:flex;justify-content:space-between;align-items:start;margin-bottom:25px}.admin-detail-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:25px}.admin-controls{border-left:1px solid var(--line);padding-left:25px}.control-section{padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--line);display:grid;gap:12px}.control-section h3{font-size:14px;display:flex;align-items:center;gap:7px}.admin-note{background:var(--mint);padding:15px;border-radius:12px;font-size:11px}.admin-note p{font-size:11px;margin:5px 0 0}
+@media(max-width:900px){.hero{grid-template-columns:1fr}.report-grid{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:1fr 1fr}.filter-button{display:none}.impact-strip{grid-template-columns:1fr}.admin-kpis{grid-template-columns:repeat(2,1fr)}.admin-detail-grid{grid-template-columns:1fr}.admin-controls{border-left:0;padding-left:0}.sidebar{width:205px}.admin-main{margin-left:205px;width:calc(100% - 205px)}}
+@media(max-width:650px){.topbar{padding:0 18px}.topbar nav{display:none}.topbar .btn{margin-left:auto}.hero{padding:55px 22px}.hero h1{font-size:42px}.content-section{padding:55px 18px}.report-grid{grid-template-columns:1fr}.filters{grid-template-columns:1fr}.impact-strip{padding:20px}.section-heading{align-items:start;gap:15px;flex-direction:column}.hero-actions{flex-direction:column}.footer{display:block}.admin-shell{display:block}.sidebar{position:relative;width:100%;height:auto;padding:15px;flex-direction:row;align-items:center}.sidebar .brand{margin:0}.sidebar .side-label,.sidebar> a:not(.active),.sidebar-bottom{display:none}.sidebar .active{margin-left:auto}.admin-main{margin:0;width:100%;padding:28px 18px}.admin-kpis{grid-template-columns:1fr 1fr}.table-wrap{overflow:auto}.table-toolbar{align-items:start;gap:10px;flex-direction:column}.table-toolbar .search{width:100%}.detail-grid{grid-template-columns:1fr}.modal{padding:22px}.modal-header{display:block}.modal-header .status-badge{margin-top:12px}}
+
+/* ==========================================================
+   CIVICPORT ADMIN — RESPONSIVE SIDEBAR / HAMBURGER
+   Add AFTER all existing CSS
+========================================================== */
+
+/* ----------------------------------------------------------
+   Desktop baseline
+---------------------------------------------------------- */
+
+.admin-shell {
+  min-height: 100vh;
+  display: flex;
+  background: #f4f7f5;
+}
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 1000;
+
+  width: 245px;
+  height: 100vh;
+
+  padding: 25px 18px;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #0d2d25;
+  color: #fff;
+
+  overflow-y: auto;
+
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease;
+}
+
+/* Sidebar header */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 40px;
+}
+
+/* Existing logo spacing needs to be controlled */
+.sidebar .brand {
+  margin: 4px 8px 55px;
+}
+
+/* Close button is mobile-only */
+.sidebar-close {
+  display: none;
+
+  width: 38px;
+  height: 38px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Navigation */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/*
+   Both <a> and <button> navigation items use
+   the same visual language.
+*/
+.sidebar a,
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+
+  padding: 12px 13px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: transparent;
+  color: #bdd0c9;
+
+  text-decoration: none;
+
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.sidebar a:hover,
+.sidebar-link:hover {
+  background: #16463a;
+  color: #fff;
+}
+
+.sidebar a.active,
+.sidebar-link.active {
+  background: #16463a;
+  color: #fff;
+}
+
+.sidebar-link:active {
+  transform: scale(0.98);
+}
+
+/* Bottom navigation */
+.sidebar-bottom {
+  margin-top: auto;
+}
+
+.sidebar-bottom a {
+  margin-bottom: 0;
+}
+
+
+/* ----------------------------------------------------------
+   Main content
+---------------------------------------------------------- */
+
+.admin-main {
+  margin-left: 245px;
+  width: calc(100% - 245px);
+  min-width: 0;
+}
+
+
+/* ----------------------------------------------------------
+   Mobile hamburger
+---------------------------------------------------------- */
+
+.mobile-menu-button {
+  display: none;
+
+  width: 44px;
+  height: 44px;
+
+  flex: 0 0 44px;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--line);
+  border-radius: 11px;
+
+  background: #fff;
+  color: var(--green);
+
+  box-shadow: 0 4px 14px rgba(16, 35, 30, 0.06);
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.mobile-menu-button:hover {
+  background: var(--mint);
+  box-shadow: 0 6px 18px rgba(16, 35, 30, 0.1);
+}
+
+.mobile-menu-button:active {
+  transform: scale(0.94);
+}
+
+.admin-title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+
+/* ----------------------------------------------------------
+   Mobile backdrop
+---------------------------------------------------------- */
+
+.sidebar-backdrop {
+  display: none;
+
+  position: fixed;
+  inset: 0;
+
+  z-index: 999;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 0;
+  border: 0;
+
+  background: rgba(8, 22, 18, 0.58);
+
+  opacity: 0;
+
+  cursor: pointer;
+
+  backdrop-filter: blur(2px);
+
+  transition: opacity 0.25s ease;
+}
+
+.sidebar-backdrop.show {
+  opacity: 1;
+}
+
+
+/* ==========================================================
+   TABLET
+========================================================== */
+
+@media (max-width: 900px) {
+
+  /*
+     Don't turn the sidebar into a horizontal bar.
+     It becomes an off-canvas drawer instead.
+  */
+
+  .sidebar {
+    width: 245px;
+    height: 100vh;
+
+    position: fixed;
+    inset: 0 auto 0 0;
+
+    transform: translateX(-105%);
+
+    box-shadow: none;
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+
+    box-shadow:
+      15px 0 45px rgba(0, 0, 0, 0.18);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+
+    pointer-events: none;
+  }
+
+  .sidebar-backdrop.show {
+    pointer-events: auto;
+  }
+
+  .sidebar-close {
+    display: flex;
+  }
+
+  .sidebar .brand {
+    margin: 4px 8px 45px;
+  }
+
+  .admin-main {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .mobile-menu-button {
+    display: flex;
+  }
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media (max-width: 650px) {
+
+  /*
+     IMPORTANT:
+     This overrides your old rule:
+
+       .sidebar {
+         position:relative;
+         width:100%;
+         ...
+         flex-direction:row;
+       }
+
+     The sidebar remains a vertical drawer.
+  */
+
+  .admin-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: fixed;
+
+    inset: 0 auto 0 0;
+
+    width: min(300px, 86vw);
+    height: 100vh;
+
+    padding: 20px 16px;
+
+    display: flex;
+    flex-direction: column;
+
+    transform: translateX(-105%);
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    border-radius: 0 18px 18px 0;
+
+    box-shadow: none;
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+
+    box-shadow:
+      15px 0 45px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar-header {
+    width: 100%;
+  }
+
+  .sidebar-close {
+    display: flex;
+  }
+
+  .sidebar .brand {
+    margin: 4px 8px 45px;
+  }
+
+  .side-label {
+    margin-top: 0;
+  }
+
+  .sidebar-nav {
+    width: 100%;
+  }
+
+  .sidebar-link {
+    min-height: 46px;
+  }
+
+  .sidebar-bottom {
+    display: block;
+
+    margin-top: auto;
+  }
+
+  /*
+     Make sure the public-dashboard link is visible.
+  */
+  .sidebar-bottom a {
+    display: flex;
+  }
+
+  .admin-main {
+    margin: 0;
+    width: 100%;
+
+    padding: 28px 18px;
+  }
+
+  .admin-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .admin-title-group {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-menu-button {
+    display: flex;
+  }
+
+  .refresh-button {
+    flex-shrink: 0;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+  }
+
+  .sidebar-backdrop.show {
+    pointer-events: auto;
+  }
+}
+
+
+/* ==========================================================
+   SMALL PHONES
+========================================================== */
+
+@media (max-width: 480px) {
+
+  .admin-main {
+    padding: 22px 14px;
+  }
+
+  .admin-top {
+    gap: 9px;
+  }
+
+  .admin-top h1 {
+    font-size: 27px;
+  }
+
+  .admin-top p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .mobile-menu-button {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+
+  /*
+     Save horizontal space on phones.
+  */
+  .refresh-button {
+    width: 42px;
+    height: 42px;
+
+    padding: 0;
+  }
+
+  .refresh-button span {
+    display: none;
+  }
+
+  .admin-kpis {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .admin-kpi {
+    padding: 15px;
+  }
+
+  .admin-kpi strong {
+    font-size: 21px;
+  }
+
+  .admin-kpi small {
+    font-size: 10px;
+  }
+
+  .table-toolbar {
+    padding: 17px;
+  }
+
+  .table-toolbar .search {
+    width: 100%;
+  }
+}
+
+
+/* ==========================================================
+   EXTRA SMALL PHONES
+========================================================== */
+
+@media (max-width: 380px) {
+
+  .admin-main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .admin-top h1 {
+    font-size: 23px;
+  }
+
+  .admin-top p {
+    display: none;
+  }
+
+  .admin-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    width: 86vw;
+  }
+}
+
+
+/* ==========================================================
+   ACCESSIBILITY / REDUCED MOTION
+========================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .sidebar,
+  .sidebar-backdrop,
+  .sidebar-link,
+  .mobile-menu-button {
+    transition: none;
+  }
+}
+
+/* ==========================================================
+   CIVICPORT PUBLIC NAVIGATION
+   Responsive / Mobile visibility
+========================================================== */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  min-height: 78px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 24px;
+}
+
+/* Public navigation */
+.public-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-left: auto;
+}
+
+.public-nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-height: 40px;
+
+  padding: 0 13px;
+
+  border-radius: 10px;
+
+  text-decoration: none;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  color: var(--muted);
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.public-nav a svg {
+  flex: 0 0 auto;
+}
+
+.public-nav a:hover {
+  color: var(--green);
+  background: var(--mint);
+}
+
+.public-nav a:active {
+  transform: scale(0.97);
+}
+
+/* Explore is intentionally prominent */
+.public-nav .nav-explore {
+  color: var(--green);
+}
+
+/* Government portal gets stronger visual distinction */
+.public-nav .nav-government {
+  color: #fff;
+  background: var(--green);
+}
+
+.public-nav .nav-government:hover {
+  color: #fff;
+  background: var(--green-2);
+}
+
+/* Report button */
+.topbar-report {
+  flex-shrink: 0;
+}
+
+
+/* ==========================================================
+   TABLET
+========================================================== */
+
+@media (max-width: 850px) {
+
+  .topbar {
+    padding-left: 22px;
+    padding-right: 22px;
+
+    gap: 12px;
+  }
+
+  .public-nav {
+    gap: 4px;
+  }
+
+  .public-nav a {
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .topbar-report {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media (max-width: 650px) {
+
+  /*
+     OVERRIDE THE ORIGINAL:
+
+       .topbar nav {
+         display: none;
+       }
+
+     Navigation remains visible.
+  */
+
+  .topbar {
+    min-height: auto;
+
+    padding: 10px 14px;
+
+    display: grid;
+
+    grid-template-columns: 1fr auto;
+
+    gap: 8px 10px;
+
+    background: #fff;
+  }
+
+  /*
+     Logo stays on the first row.
+  */
+
+  .topbar > .brand {
+    min-width: 0;
+  }
+
+  /*
+     Report button remains highly visible.
+  */
+
+  .topbar-report {
+    margin-left: 0;
+
+    min-height: 42px;
+
+    padding: 0 12px;
+
+    border-radius: 10px;
+
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /*
+     Navigation gets its own full-width row.
+  */
+
+  .topbar .public-nav {
+    grid-column: 1 / -1;
+
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 7px;
+
+    margin: 0;
+  }
+
+  .public-nav a {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding: 0 8px;
+
+    border: 1px solid var(--line);
+    border-radius: 10px;
+
+    font-size: 12px;
+
+    white-space: nowrap;
+  }
+
+  .public-nav .nav-explore {
+    background: var(--mint);
+    color: var(--green);
+    border-color: #d2e9df;
+  }
+
+  .public-nav .nav-government {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+  }
+
+  .public-nav a svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+
+/* ==========================================================
+   SMALL PHONES
+========================================================== */
+
+@media (max-width: 420px) {
+
+  .topbar {
+    padding: 9px 12px;
+  }
+
+  .topbar-report {
+    min-height: 40px;
+
+    padding: 0 10px;
+
+    font-size: 11px;
+  }
+
+  .topbar-report svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .public-nav a {
+    min-height: 44px;
+
+    font-size: 11px;
+
+    gap: 6px;
+  }
+
+  .public-nav a svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+
+/* ==========================================================
+   VERY SMALL PHONES
+========================================================== */
+
+@media (max-width: 350px) {
+
+  .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-report {
+    width: 100%;
+  }
+
+  .topbar .public-nav {
+    grid-row: 3;
+  }
+
+  .public-nav a {
+    font-size: 10px;
+  }
+}
+
+.admin-kpi.rejected > span {
+  background: #fdeaea;
+  color: #b23b3b;
+}
+
+.admin-kpi.rejected strong {
+  color: #a83939;
+}
+
+/* ==========================================================
+   CIVICPORT — ADMIN REPORT MODAL
+   AdminModal-specific styling only
+========================================================== */
+
+/* ----------------------------------------------------------
+   BACKDROP
+---------------------------------------------------------- */
+
+.admin-modal-backdrop {
+    z-index: 1200;
+    padding: 24px;
+}
+
+/* ----------------------------------------------------------
+   MODAL CONTAINER
+---------------------------------------------------------- */
+
+.admin-modal {
+    width: min(1100px, 100%);
+    max-height: 94vh;
+    padding: 30px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ----------------------------------------------------------
+   HEADER
+---------------------------------------------------------- */
+
+.admin-modal .admin-detail-head {
+    padding-right: 42px;
+    margin-bottom: 26px;
+}
+
+.admin-modal .admin-detail-head h2 {
+    font-size: 28px;
+    line-height: 1.15;
+    margin: 6px 0 7px;
+}
+
+.admin-modal .admin-detail-head p {
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* ----------------------------------------------------------
+   MAIN CONTENT
+---------------------------------------------------------- */
+
+.admin-modal .admin-detail-main {
+    min-width: 0;
+}
+
+/* ----------------------------------------------------------
+   EVIDENCE IMAGE
+---------------------------------------------------------- */
+
+.admin-modal .detail-photo {
+    display: block;
+    width: 100%;
+    max-height: 380px;
+    object-fit: cover;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    border: 1px solid var(--line);
+}
+
+/* ----------------------------------------------------------
+   DESCRIPTION
+---------------------------------------------------------- */
+
+.admin-modal .detail-description {
+    background: #f8faf9;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ink);
+}
+
+/* ----------------------------------------------------------
+   SECTION HEADING
+---------------------------------------------------------- */
+
+.admin-modal .subheading {
+    font-size: 15px;
+    margin: 26px 0 15px;
+}
+
+/* ----------------------------------------------------------
+   ADMIN CONTROLS
+---------------------------------------------------------- */
+
+.admin-modal .admin-controls {
+    min-width: 0;
+}
+
+/* ----------------------------------------------------------
+   CONTROL SECTIONS
+---------------------------------------------------------- */
+
+.admin-modal .control-section {
+    gap: 13px;
+}
+
+.admin-modal .control-section h3 {
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+
+/* ----------------------------------------------------------
+   FORM CONTROLS
+---------------------------------------------------------- */
+
+.admin-modal .admin-controls label {
+    gap: 7px;
+}
+
+.admin-modal .admin-controls input,
+.admin-modal .admin-controls select,
+.admin-modal .admin-controls textarea {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.admin-modal .admin-controls textarea {
+    min-height: 90px;
+}
+
+/* ----------------------------------------------------------
+   SAVE / ACTION BUTTONS
+---------------------------------------------------------- */
+
+.admin-modal .control-section .btn {
+    width: 100%;
+    margin-top: 3px;
+}
+
+/* ----------------------------------------------------------
+   PUBLIC VISIBILITY NOTE
+---------------------------------------------------------- */
+
+.admin-modal .admin-note {
+    border: 1px solid #d2e9df;
+}
+
+/* ==========================================================
+   ADMIN MODAL — TABLET
+========================================================== */
+
+@media (max-width: 900px) {
+
+    .admin-modal-backdrop {
+        padding: 18px;
+    }
+
+    .admin-modal {
+        width: min(760px, 100%);
+        padding: 24px;
+    }
+
+    .admin-modal .admin-detail-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .admin-modal .admin-controls {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        padding-left: 0;
+        padding-top: 24px;
+    }
+
+    .admin-modal .detail-photo {
+        max-height: 340px;
+    }
+}
+
+/* ==========================================================
+   ADMIN MODAL — MOBILE
+========================================================== */
+
+@media (max-width: 650px) {
+
+    .admin-modal-backdrop {
+        padding: 10px;
+        place-items: center;
+    }
+
+    .admin-modal {
+        width: 100%;
+        max-height: 96vh;
+        padding: 20px;
+        border-radius: 16px;
+    }
+
+    .admin-modal .admin-detail-head {
+        display: block;
+        padding-right: 40px;
+        margin-bottom: 20px;
+    }
+
+    .admin-modal .admin-detail-head h2 {
+        font-size: 23px;
+    }
+
+    .admin-modal .admin-detail-head .status-badge {
+        margin-top: 12px;
+    }
+
+    .admin-modal .detail-photo {
+        max-height: 260px;
+        border-radius: 11px;
+    }
+
+    .admin-modal .detail-description {
+        font-size: 13px;
+        padding: 14px;
+    }
+
+    .admin-modal .admin-controls {
+        padding-top: 20px;
+    }
+
+    .admin-modal .control-section {
+        padding-bottom: 18px;
+        margin-bottom: 18px;
+    }
+
+    .admin-modal .modal-close {
+        right: 12px;
+        top: 10px;
+    }
+}
+
+/* ==========================================================
+   ADMIN MODAL — SMALL PHONES
+========================================================== */
+
+@media (max-width: 420px) {
+
+    .admin-modal-backdrop {
+        padding: 6px;
+    }
+
+    .admin-modal {
+        padding: 17px;
+        border-radius: 14px;
+    }
+
+    .admin-modal .admin-detail-head h2 {
+        font-size: 21px;
+    }
+
+    .admin-modal .admin-detail-head p {
+        font-size: 12px;
+    }
+
+    .admin-modal .detail-photo {
+        max-height: 220px;
+    }
+
+    .admin-modal .detail-description {
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    .admin-modal .control-section h3 {
+        font-size: 14px;
+    }
+
+    .admin-modal .admin-controls input,
+    .admin-modal .admin-controls select {
+        height: 44px;
+    }
+}
+
+.analytics-filters {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(160px, 1fr))
+    auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.analytics-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.analytics-filter > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.analytics-filter select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+  color: #172033;
+  font-size: 14px;
+  outline: none;
+}
+
+.analytics-filter select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.filter-reset {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.filter-reset:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.analytics-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.analytics-summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.65fr)
+    minmax(300px, 1fr);
+  gap: 18px;
+}
+
+.analytics-card {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #e5eaf0;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow:
+    0 8px 25px rgba(15, 23, 42, 0.04);
+}
+
+.analytics-card-large {
+  min-width: 0;
+}
+
+.analytics-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.analytics-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #172033;
+}
+
+.analytics-card-header span {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.analytics-metric {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e5eaf0;
+  border-radius: 15px;
+  background: #fff;
+}
+
+.analytics-metric-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.analytics-metric-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.analytics-metric > div:last-child {
+  min-width: 0;
+}
+
+.analytics-metric span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.analytics-metric strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 25px;
+  line-height: 1.1;
+  color: #111827;
+}
+
+.analytics-metric small {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.analytics-metric.danger
+  .analytics-metric-icon {
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.analytics-intelligence {
+  padding: 24px;
+  border-radius: 17px;
+  background:
+    linear-gradient(
+      135deg,
+      #f8fafc,
+      #eef4ff
+    );
+  border: 1px solid #dfe7f1;
+}
+
+.analytics-intelligence-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.analytics-intelligence-header h2 {
+  margin: 3px 0 5px;
+  font-size: 20px;
+  color: #172033;
+}
+
+.analytics-intelligence-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.analytics-intelligence-header > svg {
+  color: #2563eb;
+}
+
+.intelligence-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.intelligence-item {
+  padding: 16px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.intelligence-item > span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.intelligence-item strong {
+  display: block;
+  margin: 5px 0;
+  font-size: 26px;
+  color: #172033;
+}
+
+.intelligence-item small {
+  display: block;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.intelligence-positive {
+  border-left: 3px solid #16a34a;
+}
+
+.intelligence-warning {
+  border-left: 3px solid #f59e0b;
+}
+
+.intelligence-danger {
+  border-left: 3px solid #dc2626;
+}
+
+.intelligence-neutral {
+  border-left: 3px solid #64748b;
+}
+
+.department-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+
+.department-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #e3e8ef;
+  border-radius: 15px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.department-card:hover {
+  transform: translateY(-2px);
+  border-color: #bfdbfe;
+  box-shadow:
+    0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.department-card:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.2);
+  outline-offset: 2px;
+}
+
+.department-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.department-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.department-card-top > svg {
+  margin-left: auto;
+  color: #94a3b8;
+}
+
+.department-card-name {
+  margin-top: 17px;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: #172033;
+}
+
+.department-card-stats {
+  display: grid;
+  grid-template-columns:
+    repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.department-card-stats div {
+  min-width: 0;
+}
+
+.department-card-stats strong {
+  display: block;
+  font-size: 20px;
+  color: #172033;
+}
+
+.department-card-stats span {
+  display: block;
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.department-progress {
+  height: 6px;
+  margin-top: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8edf3;
+}
+
+.department-progress > div {
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+  transition: width 0.4s ease;
+}
+
+.department-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 15px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.department-card-footer span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.department-health {
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.department-health-stable {
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.department-health-attention {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.department-health-critical {
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.department-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 24px;
+  border: 1px solid #e1e7ef;
+  border-radius: 17px;
+  background: #fff;
+}
+
+.department-overview h2 {
+  margin: 5px 0 7px;
+  font-size: 22px;
+  color: #172033;
+}
+
+.department-overview p {
+  max-width: 700px;
+  margin: 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.department-total {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 17px;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  white-space: nowrap;
+}
+
+.department-total svg {
+  color: #2563eb;
+}
+
+.department-total strong {
+  display: block;
+  font-size: 22px;
+  color: #172033;
+}
+
+.department-total span {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+@media (max-width: 1200px) {
+  .analytics-summary-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .intelligence-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .department-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-filters {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .department-overview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .analytics-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .intelligence-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .department-grid {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .analytics-card {
+    padding: 17px;
+    border-radius: 13px;
+  }
+
+  .analytics-intelligence {
+    padding: 18px;
+  }
+
+  .department-overview {
+    padding: 18px;
+  }
+
+  .department-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .department-card-stats strong {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .department-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .department-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.department-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .department-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .department-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+/* ==========================================================
+   CIVICPORT — DEPARTMENT DETAIL MODAL
+   Responsive using existing modal/detail classes
+========================================================== */
+
+/* ---------- Desktop ---------- */
+
+.department-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.department-detail-head > div:first-child {
+  min-width: 0;
+}
+
+.department-detail-head h2 {
+  font-size: 28px;
+  line-height: 1.15;
+  margin: 6px 0 7px;
+}
+
+.department-detail-head p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.department-detail-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--mint);
+  color: var(--green);
+}
+
+/* KPI cards */
+
+.department-detail-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.department-detail-kpis > * {
+  min-width: 0;
+}
+
+/* Assigned reports */
+
+.department-detail-section {
+  min-width: 0;
+}
+
+.detail-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.detail-section-header > div {
+  min-width: 0;
+}
+
+.detail-section-header h3 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.detail-section-header span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.department-report-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.department-report-row {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.department-report-row:hover {
+  background: #f8fbf9;
+  border-color: #cfe1d9;
+}
+
+.department-report-row:active {
+  transform: scale(0.995);
+}
+
+.department-report-row > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.department-report-row strong,
+.department-report-row span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.department-report-row strong {
+  color: var(--green);
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.department-report-row > div:first-child > span {
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.department-report-meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.department-report-meta svg {
+  color: #94a39d;
+}
+
+
+/* ==========================================================
+   TABLET
+========================================================== */
+
+@media (max-width: 900px) {
+
+  .department-detail-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media (max-width: 650px) {
+
+  .department-detail-head {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .department-detail-head h2 {
+    font-size: 23px;
+  }
+
+  .department-detail-head p {
+    font-size: 12px;
+  }
+
+  .department-detail-icon {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+
+  /* 2 KPI cards per row on small screens */
+
+  .department-detail-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-bottom: 22px;
+  }
+
+  .detail-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .detail-section-header .btn {
+    width: 100%;
+  }
+
+  .department-report-row {
+    align-items: flex-start;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .department-report-meta {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 45%;
+  }
+
+}
+
+
+/* ==========================================================
+   SMALL PHONES
+========================================================== */
+
+@media (max-width: 420px) {
+
+  .department-detail-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .department-report-row {
+    display: block;
+  }
+
+  .department-report-meta {
+    max-width: none;
+    justify-content: flex-start;
+    margin-top: 9px;
+  }
+
+  .department-report-row > div:first-child > span {
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+}
+
+/* ==========================================================
+   CIVICPORT — DEPARTMENT DETAIL KPI SYSTEM
+========================================================== */
+
+.department-detail-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 4px 0 28px;
+}
+
+/* ----------------------------------------------------------
+   KPI CARD
+---------------------------------------------------------- */
+
+.department-kpi-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 15px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease,
+    border-color .2s ease;
+}
+
+.department-kpi-card::after {
+  content: "";
+  position: absolute;
+  right: -18px;
+  bottom: -24px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .035;
+}
+
+.department-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(16, 35, 30, .07);
+}
+
+/* ----------------------------------------------------------
+   ICON
+---------------------------------------------------------- */
+
+.department-kpi-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #f1f6f3;
+  color: var(--green);
+}
+
+.department-kpi-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ----------------------------------------------------------
+   CONTENT
+---------------------------------------------------------- */
+
+.department-kpi-content {
+  min-width: 0;
+}
+
+.department-kpi-content span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .055em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.department-kpi-content strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink);
+  font: 800 24px/1 "Manrope", sans-serif;
+  letter-spacing: -.04em;
+}
+
+.department-kpi-content small {
+  display: block;
+  margin-top: 5px;
+  color: #94a39d;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+/* ----------------------------------------------------------
+   TOTAL
+---------------------------------------------------------- */
+
+.department-kpi-total {
+  color: var(--green);
+}
+
+.department-kpi-total .department-kpi-icon {
+  background: var(--mint);
+  color: var(--green);
+}
+
+/* ----------------------------------------------------------
+   OPEN
+---------------------------------------------------------- */
+
+.department-kpi-open {
+  color: #8a6a18;
+}
+
+.department-kpi-open .department-kpi-icon {
+  background: #fff7df;
+  color: #9a741a;
+}
+
+/* ----------------------------------------------------------
+   IN PROGRESS
+---------------------------------------------------------- */
+
+.department-kpi-progress {
+  color: #2773a8;
+}
+
+.department-kpi-progress .department-kpi-icon {
+  background: #eaf4fc;
+  color: #2773a8;
+}
+
+/* ----------------------------------------------------------
+   RESOLVED
+---------------------------------------------------------- */
+
+.department-kpi-resolved {
+  color: #18724e;
+}
+
+.department-kpi-resolved .department-kpi-icon {
+  background: #e5f6ed;
+  color: #18724e;
+}
+
+.department-kpi-resolved .department-kpi-content strong {
+  color: #18724e;
+}
+
+/* ----------------------------------------------------------
+   HIGH PRIORITY
+---------------------------------------------------------- */
+
+.department-kpi-high {
+  color: #b97818;
+}
+
+.department-kpi-high .department-kpi-icon {
+  background: #fff4dc;
+  color: #b97818;
+}
+
+/* ----------------------------------------------------------
+   CRITICAL
+---------------------------------------------------------- */
+
+.department-kpi-critical {
+  color: #c84c4c;
+  border-color: #f1d4d4;
+  background: linear-gradient(
+    135deg,
+    #fff,
+    #fff8f8
+  );
+}
+
+.department-kpi-critical .department-kpi-icon {
+  background: #fdeaea;
+  color: #b23b3b;
+}
+
+.department-kpi-critical .department-kpi-content strong {
+  color: #b23b3b;
+}
+
+/* ----------------------------------------------------------
+   REJECTED
+---------------------------------------------------------- */
+
+.department-kpi-rejected {
+  color: #a83939;
+}
+
+.department-kpi-rejected .department-kpi-icon {
+  background: #fdeaea;
+  color: #a83939;
+}
+
+.department-kpi-rejected .department-kpi-content strong {
+  color: #a83939;
+}
+
+/* ==========================================================
+   TABLET
+========================================================== */
+
+@media (max-width: 900px) {
+
+  .department-detail-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+}
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media (max-width: 650px) {
+
+  .department-detail-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-bottom: 22px;
+  }
+
+  .department-kpi-card {
+    padding: 13px;
+    gap: 10px;
+    border-radius: 13px;
+  }
+
+  .department-kpi-icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    border-radius: 9px;
+  }
+
+  .department-kpi-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .department-kpi-content strong {
+    font-size: 21px;
+  }
+
+  .department-kpi-content span {
+    font-size: 9px;
+  }
+
+  .department-kpi-content small {
+    font-size: 9px;
+  }
+
+}
+
+/* ==========================================================
+   SMALL PHONES
+========================================================== */
+
+@media (max-width: 420px) {
+
+  .department-detail-kpis {
+    gap: 8px;
+  }
+
+  .department-kpi-card {
+    padding: 11px;
+    gap: 8px;
+  }
+
+  .department-kpi-icon {
+    width: 31px;
+    height: 31px;
+    flex-basis: 31px;
+  }
+
+  .department-kpi-content strong {
+    font-size: 19px;
+  }
+
+  .department-kpi-content small {
+    display: none;
+  }
+
+}
