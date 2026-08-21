@@ -42,7 +42,8 @@ const validStatuses = ["Submitted", "Under Review", "Assigned", "In Progress", "
 const validPriorities = ["Low", "Medium", "High", "Critical"];
 
 function normalizeReport(report, req) {
-  const base = `${req.protocol}://${req.get("host")}`;
+  const base = process.env.PUBLIC_API_URL || `${req.protocol}://${req.get("host")}`;
+
   return {
     ...report,
     photoUrl: report.photoUrl ? `${base}${report.photoUrl}` : null,
@@ -52,6 +53,14 @@ function normalizeReport(report, req) {
     }))
   };
 }
+
+app.get("/", (req, res) => {
+  res.json({
+    name: "CivicPort API",
+    status: "ok",
+    version: "1.0.0",
+  });
+});
 
 app.get("/api/health", (_, res) => res.json({ ok: true, service: "CivicPort API" }));
 
