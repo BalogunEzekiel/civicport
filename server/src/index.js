@@ -2,32 +2,23 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
+import { v2 as cloudinary } from "cloudinary";
 import { PrismaClient } from "@prisma/client";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
-const uploadDir = path.join(__dirname, "..", "uploads");
 
-fs.mkdirSync(uploadDir, { recursive: true });
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 app.use(cors());
 app.use(express.json());
-app.use("/uploads", express.static(uploadDir));
 
-const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, uploadDir),
-  filename: (_, file, cb) => {
-    const safe = file.originalname.replace(/[^a-z0-9.-]/gi, "-").toLowerCase();
-    cb(null, `${Date.now()}-${safe}`);
-  }
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -38,17 +29,38 @@ const upload = multer({
   }
 });
 
+function uploadToCloudinary(file) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "civicport",
+        resource_type: "image",
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+
+    stream.end(file.buffer);
+  });
+}
+
 const validStatuses = ["Submitted", "Under Review", "Assigned", "In Progress", "Resolved", "Rejected"];
 const validPriorities = ["Low", "Medium", "High", "Critical"];
 
-function normalizeReport(report, req) {
-  const base = `${req.protocol}://${req.get("host")}`;
+function normalizeReport(report) {
   return {
     ...report,
-    photoUrl: report.photoUrl ? `${base}${report.photoUrl}` : null,
+
+    photoUrl: report.photoUrl || null,
+
     updates: report.updates?.map((u) => ({
       ...u,
-      photoUrl: u.photoUrl ? `${base}${u.photoUrl}` : null
+      photoUrl: u.photoUrl || null
     }))
   };
 }
