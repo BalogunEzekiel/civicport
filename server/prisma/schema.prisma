@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Report {
+  id             Int              @id @default(autoincrement())
+  reference      String           @unique
+  title          String
+  category       String
+  description    String
+  photoUrl       String?
+  latitude       Float?
+  longitude      Float?
+  locationLabel  String?
+  status         String           @default("Submitted")
+  priority       String           @default("Medium")
+  department     String?
+  assignedUnit   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  updates        ReportUpdate[]
+}
+
+model ReportUpdate {
+  id          Int      @id @default(autoincrement())
+  reportId    Int
+  status      String
+  message     String
+  isPublic    Boolean  @default(true)
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  report      Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
