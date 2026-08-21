@@ -2246,3 +2246,140 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
   }
 
 }
+
+.location-box {
+  padding: 16px;
+  border: 1px solid rgba(16, 35, 49, 0.1);
+  border-radius: 16px;
+  background: #f8fafb;
+}
+
+.location-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.location-header > div {
+  min-width: 0;
+}
+
+.location-header strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.location-header span {
+  display: block;
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.location-mini-map {
+  z-index: 1;
+}
+
+.location-details {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.location-details > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.location-details span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+.location-details strong {
+  font-size: 0.9rem;
+  color: #102331;
+}
+
+.location-success {
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.civicport-user-location {
+  background: transparent;
+  border: none;
+}
+
+.civicport-location-pulse {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.civicport-location-pulse::before {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.2);
+  animation: civicport-location-pulse 2s infinite;
+}
+
+.civicport-location-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes civicport-location-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+
+  70% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .location-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .location-header .btn {
+    width: 100%;
+  }
+
+  .location-mini-map {
+    height: 220px !important;
+  }
+}
