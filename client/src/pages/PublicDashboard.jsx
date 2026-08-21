@@ -659,7 +659,7 @@ function ReportForm({ onClose, onCreated }) {
 
             <div>
               <strong>
-                📍 Report location
+                📍 Report Location
               </strong>
 
               <span>
