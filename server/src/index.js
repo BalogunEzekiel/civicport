@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
 /* =========================================================
-   CLOUDINARY
+   CLOUDINARY CONFIGURATION
 ========================================================= */
 
 cloudinary.config({
@@ -20,16 +20,33 @@ cloudinary.config({
 });
 
 /* =========================================================
-   EXPRESS
+   EXPRESS CONFIGURATION
 ========================================================= */
 
 app.use(cors());
-app.use(express.json());
+
+app.use(
+  express.json({
+    limit: "2mb",
+  })
+);
+
+/* =========================================================
+   ROOT
+========================================================= */
+
+app.get("/", (_, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "CivicPort API",
+    message: "CivicPort API is running.",
+  });
+});
 
 /* =========================================================
    MULTER
-   Store uploads in memory temporarily.
-   Images are then sent directly to Cloudinary.
+   Images are stored temporarily in memory and then
+   uploaded directly to Cloudinary.
 ========================================================= */
 
 const storage = multer.memoryStorage();
@@ -42,10 +59,14 @@ const upload = multer({
   },
 
   fileFilter: (_, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
+    if (file.mimetype?.startsWith("image/")) {
       cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed."));
+      cb(
+        new Error(
+          "Only image files are allowed."
+        )
+      );
     }
   },
 });
@@ -56,20 +77,30 @@ const upload = multer({
 
 function uploadToCloudinary(file) {
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: "civicport",
-        resource_type: "image",
-      },
+    if (!file || !file.buffer) {
+      reject(
+        new Error(
+          "A valid image file is required."
+        )
+      );
+      return;
+    }
 
-      (error, result) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(result);
+    const stream =
+      cloudinary.uploader.upload_stream(
+        {
+          folder: "civicport",
+          resource_type: "image",
+        },
+
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
         }
-      }
-    );
+      );
 
     stream.end(file.buffer);
   });
@@ -102,25 +133,31 @@ const validPriorities = [
 /*
   Cloudinary URLs are already complete URLs.
 
-  Do NOT prepend the Render API URL.
-
-  Existing migrated images already look like:
+  Example:
 
   https://res.cloudinary.com/qh7nwgxh/image/upload/...
 
-  New images will use the same format.
+  Do NOT prepend the Render API URL.
 */
 
 function normalizeReport(report) {
+  if (!report) {
+    return report;
+  }
+
   return {
     ...report,
 
-    photoUrl: report.photoUrl || null,
+    photoUrl:
+      report.photoUrl || null,
 
-    updates: report.updates?.map((u) => ({
-      ...u,
-      photoUrl: u.photoUrl || null,
-    })),
+    updates:
+      report.updates?.map((update) => ({
+        ...update,
+
+        photoUrl:
+          update.photoUrl || null,
+      })) || [],
   };
 }
 
@@ -128,7 +165,7 @@ function normalizeReport(report) {
    HEALTH
 ========================================================= */
 
-app.get("/health", (req, res) => {
+app.get("/health", (_, res) => {
   res.status(200).json({
     status: "ok",
     service: "civicport-api",
@@ -136,7 +173,7 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/api/health", (_, res) => {
-  res.json({
+  res.status(200).json({
     ok: true,
     service: "CivicPort API",
   });
@@ -219,7 +256,7 @@ app.get("/api/stats", async (_, res) => {
 
     res.status(500).json({
       error:
-        "Failed to load dashboard statistics",
+        "Failed to load dashboard statistics.",
     });
   }
 });
@@ -232,8 +269,13 @@ app.get(
   "/api/geocode/reverse",
   async (req, res) => {
     try {
-      const lat = Number(req.query.lat);
-      const lon = Number(req.query.lon);
+      const lat = Number(
+        req.query.lat
+      );
+
+      const lon = Number(
+        req.query.lon
+      );
 
       if (
         !Number.isFinite(lat) ||
@@ -242,6 +284,18 @@ app.get(
         return res.status(400).json({
           error:
             "Valid latitude and longitude are required.",
+        });
+      }
+
+      if (
+        lat < -90 ||
+        lat > 90 ||
+        lon < -180 ||
+        lon > 180
+      ) {
+        return res.status(400).json({
+          error:
+            "Latitude or longitude is outside the valid geographic range.",
         });
       }
 
@@ -279,15 +333,16 @@ app.get(
         "en"
       );
 
-      const response = await fetch(
-        url.toString(),
-        {
-          headers: {
-            "User-Agent":
-              "CivicPort/1.0 (+https://civicportng.onrender.com)",
-          },
-        }
-      );
+      const response =
+        await fetch(
+          url.toString(),
+          {
+            headers: {
+              "User-Agent":
+                "CivicPort/1.0 (+https://civicportng.onrender.com)",
+            },
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -295,10 +350,11 @@ app.get(
         );
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       const address =
-        data.address || {};
+        data?.address || {};
 
       const road =
         address.road ||
@@ -388,43 +444,56 @@ app.get(
         q,
       } = req.query;
 
+      const search =
+        typeof q === "string"
+          ? q.trim()
+          : "";
+
       const reports =
         await prisma.report.findMany({
           where: {
             ...(status &&
             status !== "All"
-              ? { status }
+              ? {
+                  status,
+                }
               : {}),
 
             ...(category &&
             category !== "All"
-              ? { category }
+              ? {
+                  category,
+                }
               : {}),
 
-            ...(q
+            ...(search
               ? {
                   OR: [
                     {
                       title: {
-                        contains: q,
+                        contains:
+                          search,
                       },
                     },
 
                     {
                       description: {
-                        contains: q,
+                        contains:
+                          search,
                       },
                     },
 
                     {
                       locationLabel: {
-                        contains: q,
+                        contains:
+                          search,
                       },
                     },
 
                     {
                       reference: {
-                        contains: q,
+                        contains:
+                          search,
                       },
                     },
                   ],
@@ -446,8 +515,8 @@ app.get(
         });
 
       res.json(
-        reports.map((report) =>
-          normalizeReport(report)
+        reports.map(
+          normalizeReport
         )
       );
     } catch (error) {
@@ -457,7 +526,8 @@ app.get(
       );
 
       res.status(500).json({
-        error: "Failed to load reports.",
+        error:
+          "Failed to load reports.",
       });
     }
   }
@@ -474,7 +544,8 @@ app.get(
       const report =
         await prisma.report.findUnique({
           where: {
-            reference: req.params.reference,
+            reference:
+              req.params.reference,
           },
 
           include: {
@@ -488,7 +559,8 @@ app.get(
 
       if (!report) {
         return res.status(404).json({
-          error: "Report not found.",
+          error:
+            "Report not found.",
         });
       }
 
@@ -502,7 +574,8 @@ app.get(
       );
 
       res.status(500).json({
-        error: "Failed to load report.",
+        error:
+          "Failed to load report.",
       });
     }
   }
@@ -510,7 +583,24 @@ app.get(
 
 /* =========================================================
    CREATE NEW REPORT
-   Image → Memory → Cloudinary → PostgreSQL
+   REQUIRED:
+   - Title
+   - Category
+   - Description
+   - Photo
+   - Latitude
+   - Longitude
+   - Location label
+
+   Flow:
+
+   Browser
+      ↓
+   Multer memory
+      ↓
+   Cloudinary
+      ↓
+   PostgreSQL
 ========================================================= */
 
 app.post(
@@ -527,23 +617,104 @@ app.post(
         locationLabel,
       } = req.body;
 
+      /* -----------------------------------------
+         REQUIRED TEXT FIELDS
+      ----------------------------------------- */
+
       if (
         !title ||
-        !category ||
-        !description
+        !title.trim()
       ) {
         return res.status(400).json({
           error:
-            "Title, category and description are required.",
+            "Issue title is required.",
         });
       }
 
-      /*
-        Generate reference.
+      if (
+        !category ||
+        !category.trim()
+      ) {
+        return res.status(400).json({
+          error:
+            "Issue category is required.",
+        });
+      }
 
-        Existing references are currently based
-        on the report count.
-      */
+      if (
+        !description ||
+        !description.trim()
+      ) {
+        return res.status(400).json({
+          error:
+            "Issue description is required.",
+        });
+      }
+
+      /* -----------------------------------------
+         PHOTO IS MANDATORY
+      ----------------------------------------- */
+
+      if (!req.file) {
+        return res.status(400).json({
+          error:
+            "A photo is required as evidence for every civic report.",
+        });
+      }
+
+      /* -----------------------------------------
+         VALIDATE GPS LOCATION
+      ----------------------------------------- */
+
+      const parsedLatitude =
+        Number(latitude);
+
+      const parsedLongitude =
+        Number(longitude);
+
+      if (
+        !Number.isFinite(
+          parsedLatitude
+        ) ||
+        !Number.isFinite(
+          parsedLongitude
+        )
+      ) {
+        return res.status(400).json({
+          error:
+            "A valid GPS location is required before submitting a report.",
+        });
+      }
+
+      if (
+        parsedLatitude < -90 ||
+        parsedLatitude > 90 ||
+        parsedLongitude < -180 ||
+        parsedLongitude > 180
+      ) {
+        return res.status(400).json({
+          error:
+            "The supplied GPS coordinates are invalid.",
+        });
+      }
+
+      /* -----------------------------------------
+         LOCATION LABEL IS REQUIRED
+      ----------------------------------------- */
+
+      if (
+        !locationLabel ||
+        !locationLabel.trim()
+      ) {
+        return res.status(400).json({
+          error:
+            "A report location is required before submitting.",
+        });
+      }
+
+      /* -----------------------------------------
+         GENERATE REFERENCE
+      ----------------------------------------- */
 
       const count =
         await prisma.report.count();
@@ -554,27 +725,32 @@ app.post(
         ).padStart(6, "0")}`;
 
       /* -----------------------------------------
-         Upload image to Cloudinary
+         UPLOAD REQUIRED PHOTO TO CLOUDINARY
       ----------------------------------------- */
 
-      let photoUrl = null;
+      const uploaded =
+        await uploadToCloudinary(
+          req.file
+        );
 
-      if (req.file) {
-        const uploaded =
-          await uploadToCloudinary(
-            req.file
-          );
-
-        photoUrl =
-          uploaded.secure_url;
-
-        console.log(
-          `Cloudinary upload successful: ${photoUrl}`
+      if (
+        !uploaded ||
+        !uploaded.secure_url
+      ) {
+        throw new Error(
+          "Cloudinary did not return a valid image URL."
         );
       }
 
+      const photoUrl =
+        uploaded.secure_url;
+
+      console.log(
+        `Cloudinary upload successful: ${photoUrl}`
+      );
+
       /* -----------------------------------------
-         Create report
+         CREATE REPORT
       ----------------------------------------- */
 
       const report =
@@ -582,31 +758,31 @@ app.post(
           data: {
             reference,
 
-            title,
+            title:
+              title.trim(),
 
-            category,
+            category:
+              category.trim(),
 
-            description,
+            description:
+              description.trim(),
 
             latitude:
-              latitude
-                ? Number(latitude)
-                : null,
+              parsedLatitude,
 
             longitude:
-              longitude
-                ? Number(longitude)
-                : null,
+              parsedLongitude,
 
             locationLabel:
-              locationLabel ||
-              "Location captured",
+              locationLabel.trim(),
 
             photoUrl,
 
-            status: "Submitted",
+            status:
+              "Submitted",
 
-            priority: "Medium",
+            priority:
+              "Medium",
 
             updates: {
               create: {
@@ -616,7 +792,8 @@ app.post(
                 message:
                   "Report received from a citizen.",
 
-                isPublic: true,
+                isPublic:
+                  true,
 
                 photoUrl,
               },
@@ -624,9 +801,17 @@ app.post(
           },
 
           include: {
-            updates: true,
+            updates: {
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
           },
         });
+
+      console.log(
+        `Civic report created: ${reference}`
+      );
 
       res.status(201).json(
         normalizeReport(report)
@@ -640,7 +825,7 @@ app.post(
       res.status(500).json({
         error:
           error.message ||
-          "Failed to create report.",
+          "Failed to create civic report.",
       });
     }
   }
@@ -662,10 +847,13 @@ app.patch(
       } = req.body;
 
       if (
-        !validStatuses.includes(status)
+        !validStatuses.includes(
+          status
+        )
       ) {
         return res.status(400).json({
-          error: "Invalid status.",
+          error:
+            "Invalid status.",
         });
       }
 
@@ -679,7 +867,8 @@ app.patch(
 
       if (!report) {
         return res.status(404).json({
-          error: "Report not found.",
+          error:
+            "Report not found.",
         });
       }
 
@@ -698,20 +887,18 @@ app.patch(
                 status,
 
                 message:
-                  message ||
+                  message?.trim() ||
                   `Status changed to ${status}.`,
 
                 isPublic:
                   Boolean(isPublic),
 
                 /*
-                  This endpoint currently receives
-                  photoUrl directly in JSON.
+                  This endpoint receives photoUrl
+                  directly in JSON.
 
-                  If a future admin status update
-                  needs file upload, use a separate
-                  multipart endpoint or update this
-                  route to use multer.
+                  For admin image uploads, use
+                  /updates with multipart/form-data.
                 */
 
                 photoUrl:
@@ -768,7 +955,8 @@ app.patch(
         )
       ) {
         return res.status(400).json({
-          error: "Invalid priority.",
+          error:
+            "Invalid priority.",
         });
       }
 
@@ -780,16 +968,25 @@ app.patch(
           },
 
           data: {
-            ...(department !== undefined
-              ? { department }
+            ...(department !==
+            undefined
+              ? {
+                  department,
+                }
               : {}),
 
-            ...(assignedUnit !== undefined
-              ? { assignedUnit }
+            ...(assignedUnit !==
+            undefined
+              ? {
+                  assignedUnit,
+                }
               : {}),
 
-            ...(priority !== undefined
-              ? { priority }
+            ...(priority !==
+            undefined
+              ? {
+                  priority,
+                }
               : {}),
           },
 
@@ -811,6 +1008,16 @@ app.patch(
         error
       );
 
+      if (
+        error?.code ===
+        "P2025"
+      ) {
+        return res.status(404).json({
+          error:
+            "Report not found.",
+        });
+      }
+
       res.status(500).json({
         error:
           error.message ||
@@ -822,6 +1029,8 @@ app.patch(
 
 /* =========================================================
    ADD REPORT UPDATE
+   Image is OPTIONAL for government updates.
+
    Image → Memory → Cloudinary → PostgreSQL
 ========================================================= */
 
@@ -840,12 +1049,13 @@ app.post(
 
       if (!report) {
         return res.status(404).json({
-          error: "Report not found.",
+          error:
+            "Report not found.",
         });
       }
 
       /* -----------------------------------------
-         Upload update image to Cloudinary
+         UPLOAD OPTIONAL UPDATE IMAGE
       ----------------------------------------- */
 
       let photoUrl = null;
@@ -856,6 +1066,15 @@ app.post(
             req.file
           );
 
+        if (
+          !uploaded ||
+          !uploaded.secure_url
+        ) {
+          throw new Error(
+            "Cloudinary did not return a valid image URL."
+          );
+        }
+
         photoUrl =
           uploaded.secure_url;
 
@@ -865,28 +1084,31 @@ app.post(
       }
 
       /* -----------------------------------------
-         Create report update
+         CREATE REPORT UPDATE
       ----------------------------------------- */
 
       await prisma.reportUpdate.create({
         data: {
-          reportId: report.id,
+          reportId:
+            report.id,
 
-          status: report.status,
+          status:
+            report.status,
 
           message:
-            req.body.message ||
+            req.body.message?.trim() ||
             "Government update posted.",
 
           isPublic:
-            req.body.isPublic !== "false",
+            req.body.isPublic !==
+            "false",
 
           photoUrl,
         },
       });
 
       /* -----------------------------------------
-         Fetch fresh report
+         FETCH FRESH REPORT
       ----------------------------------------- */
 
       const fresh =
@@ -924,15 +1146,47 @@ app.post(
 );
 
 /* =========================================================
+   404 HANDLER
+========================================================= */
+
+app.use(
+  (req, res) => {
+    res.status(404).json({
+      error:
+        `Route not found: ${req.method} ${req.originalUrl}`,
+    });
+  }
+);
+
+/* =========================================================
    GLOBAL ERROR HANDLER
 ========================================================= */
 
 app.use(
-  (error, _, res, __) => {
+  (
+    error,
+    _req,
+    res,
+    _next
+  ) => {
     console.error(
       "Unhandled request error:",
       error
     );
+
+    /*
+      Multer-specific errors
+    */
+
+    if (
+      error?.code ===
+      "LIMIT_FILE_SIZE"
+    ) {
+      return res.status(400).json({
+        error:
+          "Image is too large. Maximum allowed size is 5 MB.",
+      });
+    }
 
     res.status(400).json({
       error:
@@ -943,11 +1197,68 @@ app.use(
 );
 
 /* =========================================================
+   DATABASE / SERVER SHUTDOWN
+========================================================= */
+
+async function shutdown(signal) {
+  console.log(
+    `${signal} received. Shutting down CivicPort API...`
+  );
+
+  try {
+    await prisma.$disconnect();
+
+    console.log(
+      "Database connection closed."
+    );
+
+    process.exit(0);
+  } catch (error) {
+    console.error(
+      "Error during shutdown:",
+      error
+    );
+
+    process.exit(1);
+  }
+}
+
+process.on(
+  "SIGINT",
+  () => shutdown("SIGINT")
+);
+
+process.on(
+  "SIGTERM",
+  () => shutdown("SIGTERM")
+);
+
+/* =========================================================
    START SERVER
 ========================================================= */
 
-app.listen(PORT, () => {
-  console.log(
-    `CivicPort API running on http://localhost:${PORT}`
-  );
-});
+app.listen(
+  PORT,
+  () => {
+    console.log(
+      `CivicPort API running on port ${PORT}`
+    );
+
+    console.log(
+      `Environment: ${
+        process.env.NODE_ENV ||
+        "development"
+      }`
+    );
+
+    console.log(
+      `Cloudinary configured: ${
+        Boolean(
+          process.env.CLOUDINARY_CLOUD_NAME &&
+          process.env.CLOUDINARY_API_KEY &&
+          process.env.CLOUDINARY_API_SECRET
+        )
+      }`
+    );
+  }
+);
