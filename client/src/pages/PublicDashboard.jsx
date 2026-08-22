@@ -94,7 +94,7 @@ export default function PublicDashboard() {
           <div className="hero-copy">
             <div className="eyebrow"><span></span> CIVIC TRANSPARENCY</div>
             <h1>Turn a local problem into <em>visible action.</em></h1>
-            <p>Report civic issues with evidence and location. Follow the response from first submission to final resolution.</p>
+            <p>Report civic issues with evidence and location. Follow the government response from first submission to final resolution.</p>
             <div className="hero-actions">
               <button className="btn btn-primary btn-large" onClick={() => setShowReport(true)}>Report An Issue <ArrowRight size={18}/></button>
               <button className="btn btn-ghost btn-large" onClick={() => document.getElementById("issues")?.scrollIntoView({ behavior: "smooth" })}>Explore reports</button>
