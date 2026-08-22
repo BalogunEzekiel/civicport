@@ -223,7 +223,7 @@ function LocationPicker({
 function ReportForm({ onClose, onCreated }) {
   const [form, setForm] = useState({
     title: "",
-    category: "Roads",
+    category: "",
     description: "",
     latitude: "",
     longitude: "",
@@ -662,9 +662,10 @@ function ReportForm({ onClose, onCreated }) {
 
 
         <label>
-          Category
+          Category <span className="required-field">*</span>
 
           <select
+            required
             value={form.category}
             onChange={e =>
               setForm({
@@ -673,6 +674,10 @@ function ReportForm({ onClose, onCreated }) {
               })
             }
           >
+            <option value="" disabled>
+              Select a category
+            </option>
+
             {categories
               .slice(1)
               .map(category => (
@@ -684,8 +689,11 @@ function ReportForm({ onClose, onCreated }) {
                 </option>
               ))}
           </select>
-        </label>
 
+          <small>
+            Select the category that best describes the issue.
+          </small>
+        </label>
 
         <label>
           Description
