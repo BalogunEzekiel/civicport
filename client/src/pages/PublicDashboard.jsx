@@ -469,21 +469,92 @@ function ReportForm({ onClose, onCreated }) {
   async function submit(e) {
     e.preventDefault();
 
-    setSaving(true);
     setError("");
 
-    try {
-      if (!form.latitude || !form.longitude) {
-        throw new Error(
-          "Please capture your location before submitting."
-        );
-      }
+    /*
+    * =====================================================
+    * REQUIRED FIELD VALIDATION
+    * =====================================================
+    */
 
+    if (!form.title.trim()) {
+      setError("Please enter an issue title.");
+      return;
+    }
+
+    if (!form.category) {
+      setError("Please select an issue category.");
+      return;
+    }
+
+    if (!form.description.trim()) {
+      setError("Please describe the civic issue.");
+      return;
+    }
+
+    /*
+    * PHOTO IS MANDATORY
+    */
+
+    if (!photo) {
+      setError(
+        "Please attach a photo showing the civic issue before submitting."
+      );
+      return;
+    }
+
+    /*
+    * LOCATION IS MANDATORY
+    */
+
+    if (
+      !form.latitude ||
+      !form.longitude ||
+      !Number.isFinite(Number(form.latitude)) ||
+      !Number.isFinite(Number(form.longitude))
+    ) {
+      setError(
+        "Please capture your report location before submitting."
+      );
+      return;
+    }
+
+    /*
+    * LOCATION LABEL MUST ALSO EXIST
+    *
+    * This should normally be generated automatically
+    * after GPS capture.
+    */
+
+    if (
+      !form.locationLabel ||
+      form.locationLabel === "Identifying location..."
+    ) {
+      setError(
+        "Please wait for the report location to be identified before submitting."
+      );
+      return;
+    }
+
+    /*
+    * Do not allow submission while GPS is still running.
+    */
+
+    if (locating) {
+      setError(
+        "Please wait until location detection is complete."
+      );
+      return;
+    }
+
+    setSaving(true);
+
+    try {
       const fd = new FormData();
 
       fd.append(
         "title",
-        form.title
+        form.title.trim()
       );
 
       fd.append(
@@ -493,7 +564,7 @@ function ReportForm({ onClose, onCreated }) {
 
       fd.append(
         "description",
-        form.description
+        form.description.trim()
       );
 
       fd.append(
@@ -508,10 +579,7 @@ function ReportForm({ onClose, onCreated }) {
 
       fd.append(
         "locationLabel",
-        form.locationLabel ||
-          `${Number(form.latitude).toFixed(6)}, ${Number(
-            form.longitude
-          ).toFixed(6)}`
+        form.locationLabel
       );
 
       if (form.accuracy) {
@@ -521,12 +589,15 @@ function ReportForm({ onClose, onCreated }) {
         );
       }
 
-      if (photo) {
-        fd.append(
-          "photo",
-          photo
-        );
-      }
+      /*
+      * PHOTO IS GUARANTEED TO EXIST
+      * because validation above already checked it.
+      */
+
+      fd.append(
+        "photo",
+        photo
+      );
 
       const report =
         await api.createReport(fd);
@@ -541,7 +612,7 @@ function ReportForm({ onClose, onCreated }) {
 
       setError(
         error.message ||
-          "Unable to submit civic report."
+        "Unable to submit civic report."
       );
     } finally {
       setSaving(false);
@@ -635,21 +706,24 @@ function ReportForm({ onClose, onCreated }) {
 
 
         <label>
-          Photo
+          Photo <span className="required-field">*</span>
 
           <input
             type="file"
             accept="image/*"
             capture="environment"
+            required
             onChange={e =>
               setPhoto(
-                e.target.files?.[0] ||
-                null
+                e.target.files?.[0] || null
               )
             }
           />
-        </label>
 
+          <small>
+            A clear photo is required as evidence for every report.
+          </small>
+        </label>
 
         {/* LOCATION */}
 
