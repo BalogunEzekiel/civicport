@@ -92,7 +92,7 @@ export default function PublicDashboard() {
       <main>
         <section className="hero">
           <div className="hero-copy">
-            <div className="eyebrow"><span></span> CIVIC TRANSPARENCY PLATFORM</div>
+            <div className="eyebrow"><span></span> CIVIC TRANSPARENCY</div>
             <h1>Turn a local problem into <em>visible action.</em></h1>
             <p>Report civic issues with evidence and location. Follow the response from first submission to final resolution.</p>
             <div className="hero-actions">
