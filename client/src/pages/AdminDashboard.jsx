@@ -22,6 +22,8 @@ import {
   ChevronRight,
   AlertOctagon,
   XCircle,
+  UserCircle,
+  LogOut,
 } from "lucide-react";
 
 import Logo from "../components/Logo";
@@ -50,6 +52,18 @@ const DEFAULT_DEPARTMENTS = [
 
 export default function AdminDashboard() {
   const [page, setPage] = useState("reports");
+
+  const [adminUser, setAdminUser] = useState({
+    email:
+      sessionStorage.getItem("governmentEmail") ||
+      "government.admin@civicport.gov.ng",
+
+    role:
+      sessionStorage.getItem("governmentRole") ||
+      "Government Admin",
+  });
+
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const [stats, setStats] = useState(null);
   const [reports, setReports] = useState([]);
@@ -145,6 +159,14 @@ export default function AdminDashboard() {
     }
   }
 
+  function handleLogout() {
+    sessionStorage.removeItem("governmentAuthenticated");
+    sessionStorage.removeItem("governmentEmail");
+    sessionStorage.removeItem("governmentRole");
+
+    window.location.href = "/government-login";
+  }
+
   function navigate(nextPage) {
     setPage(nextPage);
     setSidebarOpen(false);
@@ -231,14 +253,116 @@ export default function AdminDashboard() {
         </nav>
 
         <div className="sidebar-bottom">
-          <a
-            href="/"
-            className="sidebar-link public-link"
-            onClick={closeSidebar}
-          >
-            <ArrowLeft size={18} />
-            <span>Public dashboard</span>
-          </a>
+
+          <div className="government-profile">
+
+            <button
+              type="button"
+              className="government-profile-trigger"
+              onClick={() =>
+                setProfileOpen((current) => !current)
+              }
+              aria-expanded={profileOpen}
+              aria-controls="government-profile-panel"
+            >
+              <div className="government-avatar">
+                <UserCircle size={22} />
+              </div>
+
+              <div className="government-profile-summary">
+                <strong>Government Admini</strong>
+
+                <span>
+                  {adminUser.email}
+                </span>
+              </div>
+
+              <ChevronRight
+                size={16}
+                className={`profile-chevron ${
+                  profileOpen ? "profile-chevron-open" : ""
+                }`}
+              />
+            </button>
+
+
+            {profileOpen && (
+              <div
+                id="government-profile-panel"
+                className="government-profile-panel"
+              >
+
+                <div className="profile-panel-header">
+
+                  <div className="profile-panel-avatar">
+                    <ShieldCheck size={21} />
+                  </div>
+
+                  <div>
+                    <strong>Government Portal</strong>
+
+                    <span>
+                      Authenticated administrator
+                    </span>
+                  </div>
+
+                </div>
+
+
+                <div className="profile-detail">
+
+                  <span className="profile-detail-label">
+                    EMAIL
+                  </span>
+
+                  <strong>
+                    {adminUser.email}
+                  </strong>
+
+                </div>
+
+
+                <div className="profile-detail">
+
+                  <span className="profile-detail-label">
+                    ACCESS LEVEL
+                  </span>
+
+                  <strong>
+                    {adminUser.role}
+                  </strong>
+
+                </div>
+
+
+                <div className="profile-status">
+
+                  <span className="profile-status-dot" />
+
+                  <span>
+                    Active session
+                  </span>
+
+                </div>
+
+
+                <button
+                  type="button"
+                  className="government-logout"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={17} />
+
+                  <span>
+                    Sign out securely
+                  </span>
+                </button>
+
+              </div>
+            )}
+
+          </div>
+
         </div>
       </aside>
 

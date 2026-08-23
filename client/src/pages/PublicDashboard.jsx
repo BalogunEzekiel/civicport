@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import {
   MapContainer,
@@ -74,10 +75,17 @@ export default function PublicDashboard() {
             <span>Explore Issues</span>
           </a>
 
+          <Link to="/government-login">
+            Government Portal
+          </Link>
+
+          {/*
           <a href="/admin" className="nav-government">
             <ShieldCheck size={16} />
             <span>Government Portal</span>
           </a>
+          */}
+          
         </nav>
 
         <button

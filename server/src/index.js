@@ -32,6 +32,59 @@ app.use(
 );
 
 /* =========================================================
+   GOVERNMENT AUTHENTICATION
+========================================================= */
+
+app.post("/api/auth/government-login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      message: "Email and password are required.",
+    });
+  }
+
+  const validEmail = process.env.GOVERNMENT_EMAIL;
+  const validPassword = process.env.GOVERNMENT_PASSWORD;
+  const role =
+    process.env.GOVERNMENT_ROLE ||
+    "Government Administrator";
+
+  // Make sure government credentials are configured
+  if (!validEmail || !validPassword) {
+    console.error(
+      "Government authentication credentials are not configured."
+    );
+
+    return res.status(500).json({
+      message:
+        "Government authentication is not configured.",
+    });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedValidEmail =
+    validEmail.trim().toLowerCase();
+
+  if (
+    normalizedEmail !== normalizedValidEmail ||
+    password !== validPassword
+  ) {
+    return res.status(401).json({
+      message: "Invalid government credentials.",
+    });
+  }
+
+  return res.json({
+    success: true,
+    user: {
+      email: validEmail,
+      role,
+    },
+  });
+});
+
+/* =========================================================
    ROOT
 ========================================================= */
 
