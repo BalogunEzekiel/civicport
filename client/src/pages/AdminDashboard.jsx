@@ -3922,8 +3922,8 @@ function AdminModal({
 
             {currentStatus === "Resolved" && (
               <div className="admin-note">
-                <strong>]
-                  Report resolved
+                <strong>
+                  Report Resolved
                 </strong>
 
                 <p>
@@ -3941,7 +3941,7 @@ function AdminModal({
 
           <div className="admin-note">
             <strong>
-              Workflow control
+              Workflow Control
             </strong>
 
             <p>
