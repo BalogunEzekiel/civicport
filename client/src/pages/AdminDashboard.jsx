@@ -41,7 +41,30 @@ const STATUSES = [
   "Rejected",
 ];
 
-const PRIORITIES = ["Low", "Medium", "High", "Critical"];
+const STATUS_TRANSITIONS = {
+  Submitted: ["Under Review", "Rejected"],
+  "Under Review": ["Assigned", "Rejected"],
+  Assigned: ["In Progress", "Rejected"],
+  "In Progress": ["Resolved"],
+  Resolved: [],
+  Rejected: [],
+};
+
+const STATUS_ORDER = [
+  "Submitted",
+  "Under Review",
+  "Assigned",
+  "In Progress",
+  "Resolved",
+  "Rejected",
+];
+
+const PRIORITIES = [
+  "Low",
+  "Medium",
+  "High",
+  "Critical",
+];
 
 const DEFAULT_DEPARTMENTS = [
   "Works & Infrastructure",
@@ -129,17 +152,67 @@ export default function AdminDashboard() {
   async function changeStatus(status, message) {
     if (!selected?.reference) return;
 
+    const currentStatus =
+      selected.status || "Submitted";
+
+    const transitionError =
+      getStatusTransitionError(
+        currentStatus,
+        status
+      );
+
+    if (transitionError) {
+      window.alert(transitionError);
+      return;
+    }
+
+    // Assigned requires completed routing.
+    if (status === "Assigned") {
+      const routingComplete =
+        hasCompleteRouting({
+          department: selected.department,
+          assignedUnit: selected.assignedUnit,
+        });
+
+      if (!routingComplete) {
+        window.alert(
+          "Routing is required before this report can be assigned. Please select a department and enter the assigned unit."
+        );
+
+        return;
+      }
+    }
+
     try {
-      const updated = await api.updateStatus(selected.reference, {
-        status,
-        message,
-        isPublic: true,
-      });
+      setBusy(true);
+
+      const updated =
+        await api.updateStatus(
+          selected.reference,
+          {
+            status,
+            message,
+            isPublic: true,
+          }
+        );
 
       setSelected(updated);
+
       await load();
+
     } catch (error) {
-      console.error("Failed to update status:", error);
+      console.error(
+        "Failed to update status:",
+        error
+      );
+
+      window.alert(
+        error?.message ||
+          "Unable to update report status."
+      );
+
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -3200,6 +3273,60 @@ function formatDate(value) {
   );
 }
 
+const getAvailableStatusTransitions = (currentStatus) => {
+  switch (currentStatus) {
+    case "Submitted":
+      return ["Under Review"];
+
+    case "Under Review":
+      return ["Assigned"];
+
+    case "Assigned":
+      return ["In Progress"];
+
+    case "In Progress":
+      return ["Resolved"];
+
+    case "Resolved":
+    case "Rejected":
+      return [];
+
+    default:
+      return [];
+  }
+};
+
+function getStatusTransitionError(
+  currentStatus,
+  nextStatus
+) {
+  if (
+    currentStatus === "Resolved" ||
+    currentStatus === "Rejected"
+  ) {
+    return `A ${currentStatus.toLowerCase()} report cannot be moved to another status.`;
+  }
+
+  const allowed =
+    getAvailableStatusTransitions(currentStatus);
+
+  if (!allowed.includes(nextStatus)) {
+    return `Invalid workflow transition: ${currentStatus} → ${nextStatus}.`;
+  }
+
+  return null;
+}
+
+function hasCompleteRouting({
+  department,
+  assignedUnit,
+}) {
+  return Boolean(
+    department?.trim() &&
+    assignedUnit?.trim()
+  );
+}
+
 /* ============================================================
    ADMIN MODAL
 ============================================================ */
@@ -3212,8 +3339,9 @@ function AdminModal({
 }) {
   const [message, setMessage] = useState("");
 
-  const [department, setDepartment] =
-    useState(report.department || "");
+  const [department, setDepartment] = useState(
+    report.department || ""
+  );
 
   const [unit, setUnit] = useState(
     report.assignedUnit || ""
@@ -3225,10 +3353,57 @@ function AdminModal({
 
   const [saving, setSaving] = useState(false);
 
-  const statuses = STATUSES;
+  const currentStatus =
+    report.status || "Submitted";
+
+  /*
+   * Only statuses that can actually be reached from
+   * the current status are displayed.
+   *
+   * Rejected is handled separately because it is
+   * available from every active workflow stage.
+   */
+  const availableStatuses =
+    getAvailableStatusTransitions(
+      currentStatus
+    );
+
+  const routingComplete =
+    hasCompleteRouting({
+      department,
+      assignedUnit: unit,
+    });
+
+  /*
+   * Routing becomes mandatory when the report is
+   * about to enter Assigned status.
+   */
+  const assigning =
+    availableStatuses.includes("Assigned");
+
+  /*
+   * ------------------------------------------------------------
+   * SAVE ROUTING
+   * ------------------------------------------------------------
+   */
 
   async function saveAssignment(e) {
     e.preventDefault();
+
+    if (
+      currentStatus === "Rejected" ||
+      currentStatus === "Resolved"
+    ) {
+      return;
+    }
+
+    if (!routingComplete) {
+      window.alert(
+        "Complete Routing before saving. Department and Assigned Unit are required."
+      );
+
+      return;
+    }
 
     try {
       setSaving(true);
@@ -3241,6 +3416,184 @@ function AdminModal({
     } finally {
       setSaving(false);
     }
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * STATUS VALIDATION
+   * ------------------------------------------------------------
+   */
+
+  async function changeStatus(status, message) {
+    if (!selected?.reference) return;
+
+    if (!message?.trim()) {
+      window.alert(
+        "A public update is required before changing the report status."
+      );
+      return;
+    }
+
+    const currentStatus =
+      selected.status || "Submitted";
+
+    const transitionError =
+      getStatusTransitionError(
+        currentStatus,
+        status
+      );
+
+    if (transitionError) {
+      window.alert(transitionError);
+      return;
+    }
+
+    // Assigned requires completed routing.
+    if (status === "Assigned") {
+      const routingComplete =
+        hasCompleteRouting({
+          department: selected.department,
+          assignedUnit: selected.assignedUnit,
+        });
+
+      if (!routingComplete) {
+        window.alert(
+          "Routing is required before this report can be assigned. Please select a department and enter the assigned unit."
+        );
+        return;
+      }
+    }
+
+    try {
+      setBusy(true);
+
+      const updated =
+        await api.updateStatus(
+          selected.reference,
+          {
+            status,
+            message: message.trim(),
+            isPublic: true,
+          }
+        );
+
+      setSelected(updated);
+
+      await load();
+
+    } catch (error) {
+      console.error(
+        "Failed to update status:",
+        error
+      );
+
+      window.alert(
+        error?.message ||
+          "Unable to update report status."
+      );
+
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function canChangeStatus(
+    current,
+    next
+  ) {
+    if (!next || next === current) {
+      return false;
+    }
+
+    /*
+     * Rejection is allowed from every active stage.
+     */
+    if (next === "Rejected") {
+      return (
+        current !== "Rejected" &&
+        current !== "Resolved" &&
+        current !== "In Progres"
+      );
+    }
+
+    return (
+      STATUS_TRANSITIONS[current] || []
+    ).includes(next);
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * STATUS CHANGE
+   * ------------------------------------------------------------
+   */
+
+  async function handleStatusChange(nextStatus) {
+    if (
+      !nextStatus ||
+      nextStatus === currentStatus
+    ) {
+      return;
+    }
+
+    /*
+    * Prevent invalid workflow transitions.
+    */
+    if (
+      !canChangeStatus(
+        currentStatus,
+        nextStatus
+      )
+    ) {
+      return;
+    }
+
+    /*
+    * Use the central transition validator
+    * for user-facing error messages.
+    */
+    const transitionError =
+      getStatusTransitionError(
+        currentStatus,
+        nextStatus
+      );
+
+    if (transitionError) {
+      window.alert(transitionError);
+      return;
+    }
+
+    /*
+    * PUBLIC UPDATE IS REQUIRED
+    * FOR EVERY STATUS CHANGE.
+    */
+    if (!message?.trim()) {
+      window.alert(
+        "A public update is required before changing the report status."
+      );
+
+      return;
+    }
+
+    /*
+    * ASSIGNED requires complete routing.
+    */
+    if (
+      nextStatus === "Assigned" &&
+      !routingComplete
+    ) {
+      window.alert(
+        "Complete Routing before assigning this report. Department and Assigned Unit are required."
+      );
+
+      return;
+    }
+
+    await onStatus(
+      nextStatus,
+      message.trim()
+    );
+
+    setMessage("");
   }
 
   return (
@@ -3257,16 +3610,24 @@ function AdminModal({
 
           <h2>{report.title}</h2>
 
-          <p>{report.locationLabel}</p>
+          <p>
+            {report.locationLabel}
+          </p>
         </div>
 
         <StatusBadge
-          status={report.status}
+          status={currentStatus}
         />
       </div>
 
       <div className="admin-detail-grid">
+
+        {/* ======================================================
+            REPORT DETAILS
+        ====================================================== */}
+
         <div className="admin-detail-main">
+
           {report.photoUrl && (
             <img
               className="detail-photo"
@@ -3284,17 +3645,170 @@ function AdminModal({
           </h3>
 
           <Timeline report={report} />
+
         </div>
 
+
+        {/* ======================================================
+            ADMIN CONTROLS
+        ====================================================== */}
+
         <div className="admin-controls">
+
+          {/* ====================================================
+              ROUTING
+          ==================================================== */}
+
+          {currentStatus === "Under Review" && (
+            <form
+              onSubmit={saveAssignment}
+              className="control-section"
+            >
+
+              <h2>
+                <SlidersHorizontal size={17} />
+
+                Routing
+
+                {assigning && (
+                  <span
+                    style={{
+                      color: "#dc2626",
+                      fontSize: "11px",
+                      marginLeft: "6px",
+                    }}
+                  >
+                    REQUIRED
+                  </span>
+                )}
+              </h2>
+
+              {/* DEPARTMENT */}
+
+              <label>
+                Department
+
+                <select
+                  value={department}
+                  onChange={(e) =>
+                    setDepartment(e.target.value)
+                  }
+                >
+                  <option value="">
+                    Select department
+                  </option>
+
+                  {DEFAULT_DEPARTMENTS.map(
+                    (item) => (
+                      <option
+                        key={item}
+                        value={item}
+                      >
+                        {item}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+
+              {/* ASSIGNED UNIT */}
+
+              <label>
+                Assigned unit
+
+                <input
+                  value={unit}
+                  onChange={(e) =>
+                    setUnit(e.target.value)
+                  }
+                  placeholder="e.g. Road Maintenance Unit"
+                />
+              </label>
+
+
+              {/* PRIORITY */}
+
+              <label>
+                Priority
+
+                <select
+                  value={priority}
+                  onChange={(e) =>
+                    setPriority(e.target.value)
+                  }
+                >
+                  {PRIORITIES.map(
+                    (item) => (
+                      <option
+                        key={item}
+                        value={item}
+                      >
+                        {item}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+
+              {/* ROUTING STATUS */}
+
+              <div
+                className={`admin-note ${
+                  routingComplete
+                    ? "routing-complete"
+                    : "routing-incomplete"
+                }`}
+              >
+                <strong>
+                  {routingComplete
+                    ? "Routing complete"
+                    : "Routing incomplete"}
+                </strong>
+
+                <p>
+                  {routingComplete
+                    ? `${department} → ${unit}`
+                    : "Department and assigned unit are required before the report can enter Assigned status."}
+                </p>
+              </div>
+
+
+              {/* SAVE ROUTING */}
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={
+                  saving ||
+                  !routingComplete
+                }
+              >
+                {saving
+                  ? "Saving..."
+                  : "Save routing"}
+              </button>
+
+            </form>
+          )}
+
+          {/* ====================================================
+              STATUS CONTROL
+          ==================================================== */}
+
           <div className="control-section">
+
             <h2>
               <SlidersHorizontal size={17} />
-              Manage report
+              Update Report
             </h2>
 
+
+            {/* PUBLIC UPDATE */}
+
             <label>
-              Public update
+              Public Note
 
               <textarea
                 value={message}
@@ -3303,112 +3817,138 @@ function AdminModal({
                 }
                 rows="3"
                 placeholder="What should citizens know?"
+                disabled={
+                  currentStatus === "Rejected" ||
+                  currentStatus === "Resolved"
+                }
               />
             </label>
+
+
+            {/* STATUS */}
 
             <label>
               Status
 
               <select
-                value={report.status}
-                onChange={async (e) => {
-                  await onStatus(
-                    e.target.value,
-                    message ||
-                      `Status changed to ${e.target.value}.`
-                  );
-
-                  setMessage("");
-                }}
-              >
-                {statuses.map((s) => (
-                  <option key={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-          </div>
-
-          <form
-            onSubmit={saveAssignment}
-            className="control-section"
-          >
-            <h2>
-              <SlidersHorizontal size={17} />
-                Routing
-            </h2>
-
-            <label>
-              Department
-
-              <select
-                value={department}
+                value=""
                 onChange={(e) =>
-                  setDepartment(e.target.value)
+                  handleStatusChange(e.target.value)
+                }
+                disabled={
+                  currentStatus === "Resolved" ||
+                  currentStatus === "Rejected"
                 }
               >
                 <option value="">
-                  Pending
+                  {currentStatus === "Resolved" ||
+                  currentStatus === "Rejected"
+                    ? "No further transition"
+                    : "Select next status"}
                 </option>
 
-                {DEFAULT_DEPARTMENTS.map(
-                  (item) => (
-                    <option key={item}>
-                      {item}
-                    </option>
-                  )
-                )}
-              </select>
-            </label>
-
-            <label>
-              Assigned unit
-
-              <input
-                value={unit}
-                onChange={(e) =>
-                  setUnit(e.target.value)
-                }
-                placeholder="e.g. Road Maintenance Unit"
-              />
-            </label>
-
-            <label>
-              Priority
-
-              <select
-                value={priority}
-                onChange={(e) =>
-                  setPriority(e.target.value)
-                }
-              >
-                {PRIORITIES.map((item) => (
-                  <option key={item}>
-                    {item}
+                {availableStatuses.map((status) => (
+                  <option
+                    key={status}
+                    value={status}
+                  >
+                    {status}
                   </option>
                 ))}
               </select>
             </label>
 
-            <button
-              className="btn btn-primary"
-              disabled={saving}
-            >
-              {saving
-                ? "Saving..."
-                : "Save routing"}
-            </button>
-          </form>
+
+            {/* ==================================================
+                REJECTION CUTOFF
+            ================================================== */}
+
+            {currentStatus === "Assigned" && (
+              <div
+                style={{
+                  marginTop: "8px",
+                  color: "#dc2626",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                }}
+              >
+                ⚠ Report cannot be rejected after this stage.
+              </div>
+            )}
+
+
+            {/* ==================================================
+                REJECTION
+            ================================================== */}
+
+            {["Submitted", "Under Review", "Assigned"].includes(
+              currentStatus
+            ) && (
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() =>
+                  handleStatusChange("Rejected")
+                }
+              >
+                <XCircle size={16} />
+                Reject Report
+              </button>
+            )}
+
+            {/* ==================================================
+                REJECTED STATE
+            ================================================== */}
+
+            {currentStatus === "Rejected" && (
+              <div className="admin-note">
+                <strong>
+                  Report rejected
+                </strong>
+
+                <p>
+                  This report is closed and
+                  cannot be resubmitted or
+                  returned to the workflow.
+                </p>
+              </div>
+            )}
+
+
+            {/* ==================================================
+                RESOLVED STATE
+            ================================================== */}
+
+            {currentStatus === "Resolved" && (
+              <div className="admin-note">
+                <strong>]
+                  Report resolved
+                </strong>
+
+                <p>
+                  This report has completed
+                  the operational lifecycle.
+                </p>
+              </div>
+            )}
+
+          </div>
+
+          {/* ====================================================
+              LIFECYCLE RULE
+          ==================================================== */}
 
           <div className="admin-note">
-            <strong>Public visibility</strong>
+            <strong>
+              Workflow control
+            </strong>
 
             <p>
-              Status changes and public updates are
-              reflected immediately on the public
-              report timeline.
+              • Reports progress through Submitted → Under Review → Assigned → In Progress → Resolved.<br />
+              • Routing is required before entering Assigned status.<br />
+              • Reports may be rejected from Submitted through Assigned only.<br />
+              • Once a report enters In Progress, rejection is no longer permitted.
             </p>
           </div>
         </div>
