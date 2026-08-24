@@ -316,25 +316,7 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
 }
 
 
-/* ==========================================================
-   MOBILE
-========================================================== */
-
 @media (max-width: 650px) {
-
-  /*
-     IMPORTANT:
-     This overrides your old rule:
-
-       .sidebar {
-         position:relative;
-         width:100%;
-         ...
-         flex-direction:row;
-       }
-
-     The sidebar remains a vertical drawer.
-  */
 
   .admin-shell {
     display: block;
@@ -346,7 +328,10 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
     inset: 0 auto 0 0;
 
     width: min(300px, 86vw);
-    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+
+    box-sizing: border-box;
 
     padding: 20px 16px;
 
@@ -372,6 +357,7 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
 
   .sidebar-header {
     width: 100%;
+    flex-shrink: 0;
   }
 
   .sidebar-close {
@@ -388,37 +374,26 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
 
   .sidebar-nav {
     width: 100%;
+    flex-shrink: 0;
   }
 
   .sidebar-link {
     min-height: 46px;
   }
 
+  /* FIX: keep government profile inside the drawer */
   .sidebar-bottom {
     display: block;
     margin-top: auto;
-    flex: 0 0 auto;
+    flex-shrink: 0;
     position: relative;
-    z-index: 10;
-  }
-/*
-  .sidebar-bottom {
-    display: block;
-
-    margin-top: auto;
-  }
-*/
-  /*
-     Make sure the public-dashboard link is visible.
-  */
-  .sidebar-bottom a {
-    display: flex;
+    z-index: 20;
+    padding-bottom: 12px;
   }
 
   .admin-main {
     margin: 0;
     width: 100%;
-
     padding: 28px 18px;
   }
 
@@ -449,7 +424,6 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
     pointer-events: auto;
   }
 }
-
 
 /* ==========================================================
    SMALL PHONES
