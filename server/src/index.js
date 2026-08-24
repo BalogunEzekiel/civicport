@@ -180,6 +180,138 @@ const validPriorities = [
 ];
 
 /* =========================================================
+   CIVICPORT WORKFLOW
+========================================================= */
+
+/*
+   Normal lifecycle:
+
+   Submitted
+       ↓
+   Under Review
+       ↓
+   Assigned
+       ↓
+   In Progress
+       ↓
+   Resolved
+
+   Rejected may be reached from any ACTIVE stage.
+
+   Resolved and Rejected are terminal states.
+*/
+
+const STATUS_TRANSITIONS = {
+  Submitted: [
+    "Under Review",
+    "Rejected",
+  ],
+
+  "Under Review": [
+    "Assigned",
+    "Rejected",
+  ],
+
+  Assigned: [
+    "In Progress",
+    "Rejected",
+  ],
+
+  "In Progress": [
+    "Resolved",
+    "Rejected",
+  ],
+
+  Resolved: [],
+
+  Rejected: [],
+};
+
+const TERMINAL_STATUSES = [
+  "Resolved",
+  "Rejected",
+];
+
+function canTransitionStatus(
+  currentStatus,
+  nextStatus
+) {
+  if (!currentStatus || !nextStatus) {
+    return false;
+  }
+
+  if (currentStatus === nextStatus) {
+    return true;
+  }
+
+  return (
+    STATUS_TRANSITIONS[currentStatus] || []
+  ).includes(nextStatus);
+}
+
+function getStatusTransitionError(
+  currentStatus,
+  nextStatus
+) {
+  if (!validStatuses.includes(nextStatus)) {
+    return "Invalid status.";
+  }
+
+  if (
+    currentStatus === "Rejected"
+  ) {
+    return (
+      "Rejected reports are closed and cannot be returned to the workflow."
+    );
+  }
+
+  if (
+    currentStatus === "Resolved"
+  ) {
+    return (
+      "Resolved reports have completed their operational lifecycle."
+    );
+  }
+
+  if (
+    !canTransitionStatus(
+      currentStatus,
+      nextStatus
+    )
+  ) {
+    const allowed =
+      STATUS_TRANSITIONS[
+        currentStatus
+      ] || [];
+
+    if (allowed.length === 0) {
+      return `No further status transition is permitted from ${currentStatus}.`;
+    }
+
+    return (
+      `Invalid workflow transition: ${currentStatus} → ${nextStatus}. ` +
+      `The next permitted status is ${allowed.join(
+        " or "
+      )}.`
+    );
+  }
+
+  return null;
+}
+
+function hasCompleteRouting({
+  department,
+  assignedUnit,
+}) {
+  return Boolean(
+    department &&
+      department.trim() &&
+      assignedUnit &&
+      assignedUnit.trim()
+  );
+}
+
+/* =========================================================
    RESPONSE NORMALIZATION
 ========================================================= */
 
@@ -238,15 +370,32 @@ app.get("/api/health", (_, res) => {
 
 app.get("/api/stats", async (_, res) => {
   try {
+    const activeStatuses = [
+      "Submitted",
+      "Under Review",
+      "Assigned",
+      "In Progress",
+    ];
+
     const [
       total,
       resolved,
       progress,
       open,
       rejected,
+      assigned,
+      unassigned,
       categories,
     ] = await Promise.all([
+      /* -----------------------------------------
+         TOTAL
+      ----------------------------------------- */
+
       prisma.report.count(),
+
+      /* -----------------------------------------
+         RESOLVED
+      ----------------------------------------- */
 
       prisma.report.count({
         where: {
@@ -254,11 +403,23 @@ app.get("/api/stats", async (_, res) => {
         },
       }),
 
+      /* -----------------------------------------
+         IN PROGRESS
+      ----------------------------------------- */
+
       prisma.report.count({
         where: {
           status: "In Progress",
         },
       }),
+
+      /* -----------------------------------------
+         OPEN
+
+         Submitted
+         Under Review
+         Assigned
+      ----------------------------------------- */
 
       prisma.report.count({
         where: {
@@ -272,11 +433,105 @@ app.get("/api/stats", async (_, res) => {
         },
       }),
 
+      /* -----------------------------------------
+         REJECTED
+      ----------------------------------------- */
+
       prisma.report.count({
         where: {
           status: "Rejected",
         },
       }),
+
+      /* -----------------------------------------
+         ASSIGNED
+
+         IMPORTANT:
+         A report is considered assigned only when:
+
+         1. It is NOT rejected
+         2. It has a department
+         3. It has an assigned unit
+      ----------------------------------------- */
+
+      prisma.report.count({
+        where: {
+          status: {
+            in: activeStatuses,
+          },
+
+          AND: [
+            {
+              department: {
+                not: null,
+              },
+            },
+
+            {
+              department: {
+                not: "",
+              },
+            },
+
+            {
+              assignedUnit: {
+                not: null,
+              },
+            },
+
+            {
+              assignedUnit: {
+                not: "",
+              },
+            },
+          ],
+        },
+      }),
+
+      /* -----------------------------------------
+         UNASSIGNED
+
+         IMPORTANT:
+
+         Rejected reports are automatically excluded
+         because only ACTIVE statuses are considered.
+
+         Therefore:
+
+         Unassigned =
+         active report
+         + missing department OR missing unit
+      ----------------------------------------- */
+
+      prisma.report.count({
+        where: {
+          status: {
+            in: activeStatuses,
+          },
+
+          OR: [
+            {
+              department: null,
+            },
+
+            {
+              department: "",
+            },
+
+            {
+              assignedUnit: null,
+            },
+
+            {
+              assignedUnit: "",
+            },
+          ],
+        },
+      }),
+
+      /* -----------------------------------------
+         CATEGORIES
+      ----------------------------------------- */
 
       prisma.report.groupBy({
         by: ["category"],
@@ -299,6 +554,8 @@ app.get("/api/stats", async (_, res) => {
       progress,
       open,
       rejected,
+      assigned,
+      unassigned,
       categories,
     });
   } catch (error) {
@@ -899,16 +1156,22 @@ app.patch(
         photoUrl,
       } = req.body;
 
+      /* -----------------------------------------
+         VALIDATE STATUS
+      ----------------------------------------- */
+
       if (
-        !validStatuses.includes(
-          status
-        )
+        !validStatuses.includes(status)
       ) {
         return res.status(400).json({
           error:
             "Invalid status.",
         });
       }
+
+      /* -----------------------------------------
+         FIND REPORT
+      ----------------------------------------- */
 
       const report =
         await prisma.report.findUnique({
@@ -925,6 +1188,69 @@ app.patch(
         });
       }
 
+      const currentStatus =
+        report.status || "Submitted";
+
+      /* -----------------------------------------
+         SAME STATUS
+
+         Do not create a duplicate lifecycle
+         event when status has not changed.
+      ----------------------------------------- */
+
+      if (
+        currentStatus === status
+      ) {
+        return res.status(400).json({
+          error:
+            `Report is already in ${status} status.`,
+        });
+      }
+
+      /* -----------------------------------------
+         WORKFLOW VALIDATION
+      ----------------------------------------- */
+
+      const transitionError =
+        getStatusTransitionError(
+          currentStatus,
+          status
+        );
+
+      if (transitionError) {
+        return res.status(400).json({
+          error:
+            transitionError,
+        });
+      }
+
+      /* -----------------------------------------
+         ASSIGNED REQUIRES COMPLETE ROUTING
+      ----------------------------------------- */
+
+      if (
+        status === "Assigned"
+      ) {
+        const routingComplete =
+          hasCompleteRouting({
+            department:
+              report.department,
+            assignedUnit:
+              report.assignedUnit,
+          });
+
+        if (!routingComplete) {
+          return res.status(400).json({
+            error:
+              "Complete routing before assigning this report. Department and Assigned Unit are required.",
+          });
+        }
+      }
+
+      /* -----------------------------------------
+         UPDATE REPORT + CREATE TIMELINE EVENT
+      ----------------------------------------- */
+
       const updated =
         await prisma.report.update({
           where: {
@@ -940,19 +1266,13 @@ app.patch(
                 status,
 
                 message:
-                  message?.trim() ||
-                  `Status changed to ${status}.`,
+                  typeof message === "string" &&
+                  message.trim()
+                    ? message.trim()
+                    : `Status changed to ${status}.`,
 
                 isPublic:
                   Boolean(isPublic),
-
-                /*
-                  This endpoint receives photoUrl
-                  directly in JSON.
-
-                  For admin image uploads, use
-                  /updates with multipart/form-data.
-                */
 
                 photoUrl:
                   photoUrl || null,
@@ -968,6 +1288,10 @@ app.patch(
             },
           },
         });
+
+      console.log(
+        `Report ${report.reference}: ${currentStatus} → ${status}`
+      );
 
       res.json(
         normalizeReport(updated)
@@ -1001,6 +1325,10 @@ app.patch(
         priority,
       } = req.body;
 
+      /* -----------------------------------------
+         VALIDATE PRIORITY
+      ----------------------------------------- */
+
       if (
         priority &&
         !validPriorities.includes(
@@ -1013,6 +1341,90 @@ app.patch(
         });
       }
 
+      /* -----------------------------------------
+         FIND REPORT
+      ----------------------------------------- */
+
+      const existing =
+        await prisma.report.findUnique({
+          where: {
+            reference:
+              req.params.reference,
+          },
+        });
+
+      if (!existing) {
+        return res.status(404).json({
+          error:
+            "Report not found.",
+        });
+      }
+
+      /* -----------------------------------------
+         TERMINAL REPORTS CANNOT BE ROUTED
+      ----------------------------------------- */
+
+      if (
+        existing.status === "Rejected"
+      ) {
+        return res.status(400).json({
+          error:
+            "Rejected reports cannot be resubmitted or reassigned.",
+        });
+      }
+
+      if (
+        existing.status === "Resolved"
+      ) {
+        return res.status(400).json({
+          error:
+            "Resolved reports have completed their operational lifecycle and cannot be reassigned.",
+        });
+      }
+
+      /* -----------------------------------------
+         NORMALIZE ROUTING VALUES
+      ----------------------------------------- */
+
+      const nextDepartment =
+        department !== undefined
+          ? String(department).trim()
+          : existing.department || "";
+
+      const nextAssignedUnit =
+        assignedUnit !== undefined
+          ? String(assignedUnit).trim()
+          : existing.assignedUnit || "";
+
+      /* -----------------------------------------
+         IF REPORT IS ALREADY ASSIGNED,
+         ROUTING MUST REMAIN COMPLETE
+      ----------------------------------------- */
+
+      if (
+        existing.status === "Assigned" ||
+        department !== undefined ||
+        assignedUnit !== undefined
+      ) {
+        if (
+          !hasCompleteRouting({
+            department:
+              nextDepartment,
+            assignedUnit:
+              nextAssignedUnit,
+          })
+        ) {
+          return res.status(400).json({
+            error:
+              "Department and Assigned Unit are both required for complete routing.",
+          });
+        }
+      }
+
+      /* -----------------------------------------
+         UPDATE REPORT
+      ----------------------------------------- */
+
       const report =
         await prisma.report.update({
           where: {
@@ -1021,22 +1433,21 @@ app.patch(
           },
 
           data: {
-            ...(department !==
-            undefined
+            ...(department !== undefined
               ? {
-                  department,
+                  department:
+                    nextDepartment || null,
                 }
               : {}),
 
-            ...(assignedUnit !==
-            undefined
+            ...(assignedUnit !== undefined
               ? {
-                  assignedUnit,
+                  assignedUnit:
+                    nextAssignedUnit || null,
                 }
               : {}),
 
-            ...(priority !==
-            undefined
+            ...(priority !== undefined
               ? {
                   priority,
                 }
@@ -1062,8 +1473,7 @@ app.patch(
       );
 
       if (
-        error?.code ===
-        "P2025"
+        error?.code === "P2025"
       ) {
         return res.status(404).json({
           error:
