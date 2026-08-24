@@ -387,15 +387,9 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
   }
 
   .sidebar-nav {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-  }
-/*
-  .sidebar-nav {
     width: 100%;
   }
-*/
+
   .sidebar-link {
     min-height: 46px;
   }
