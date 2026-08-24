@@ -3224,3 +3224,165 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
   font-size: 11px;
   color: #10231e;
 }
+
+
+
+
+/* ============================================================
+   UNASSIGNED REPORTS COUNT CARD
+============================================================ */
+
+.unassigned-card {
+  position: relative;
+  width: 100%;
+  min-height: 118px;
+  margin-top: 11px;
+  margin-bottom: 11px;
+
+  display: flex;
+  align-items: center;
+  gap: 18px;
+
+  padding: 22px 24px;
+
+  border: 1px solid #e6e9ee;
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+
+  appearance: none;
+  font: inherit;
+}
+
+.unassigned-card:hover {
+  transform: translateY(-2px);
+  border-color: #f0b429;
+  background: #fffdf7;
+  box-shadow: 0 10px 28px rgba(16, 35, 49, 0.08);
+}
+
+.unassigned-card:focus-visible {
+  outline: 3px solid rgba(240, 180, 41, 0.25);
+  outline-offset: 3px;
+}
+
+
+/* ============================================================
+   ICON
+============================================================ */
+
+.unassigned-card-icon {
+  width: 48px;
+  height: 48px;
+
+  flex: 0 0 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: #fff4d6;
+  color: #b77900;
+}
+
+
+/* ============================================================
+   CONTENT
+============================================================ */
+
+.unassigned-card-content {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.unassigned-card-content span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #68717d;
+  letter-spacing: 0.01em;
+}
+
+.unassigned-card-content strong {
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #17212b;
+}
+
+.unassigned-card-content small {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #8a929c;
+}
+
+
+/* ============================================================
+   ARROW
+============================================================ */
+
+.unassigned-card-arrow {
+  margin-left: auto;
+  flex: 0 0 auto;
+
+  color: #9aa2ad;
+
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.unassigned-card:hover .unassigned-card-arrow {
+  color: #b77900;
+  transform: translateX(3px);
+}
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media (max-width: 640px) {
+  .unassigned-card {
+    min-height: 104px;
+    padding: 18px;
+
+    gap: 14px;
+    border-radius: 14px;
+  }
+
+  .unassigned-card-icon {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+
+  .unassigned-card-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .unassigned-card-content strong {
+    font-size: 26px;
+  }
+
+  .unassigned-card-content span {
+    font-size: 12px;
+  }
+
+  .unassigned-card-content small {
+    font-size: 11px;
+  }
+}
