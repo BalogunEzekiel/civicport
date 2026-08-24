@@ -487,30 +487,51 @@ function ReportsPage({
   load,
   open,
 }) {
+  const activeReports = reports.filter(
+    (report) => report.status !== "Rejected"
+  );
+
+  const unassignedCount = activeReports.filter(
+    (report) =>
+      !report.department ||
+      report.department.trim() === ""
+  ).length;
+
+  const assignedCount = activeReports.filter(
+    (report) =>
+      report.department &&
+      report.department.trim() !== ""
+  ).length;
+
   return (
     <>
       <section className="admin-kpis">
+
         <Kpi
           icon={<ClipboardList />}
-          label="Total reports"
+          label="Total Reports"
           value={stats?.total ?? reports.length}
         />
 
         <Kpi
+          icon={<AlertTriangle />}
+          label="Unassigned"
+          value={unassignedCount}
+        />
+
+        <Kpi
           icon={<Eye />}
-          label="Pending"
-          value={stats?.open ?? countStatus(reports, [
-            "Submitted",
-            "Under Review",
-          ])}
+          label="Assigned"
+          value={assignedCount}
         />
 
         <Kpi
           icon={<RefreshCw />}
-          label="In progress"
-          value={stats?.progress ?? countStatus(reports, [
-            "In Progress",
-          ])}
+          label="In Progress"
+          value={
+            stats?.progress ??
+            countStatus(reports, ["In Progress"])
+          }
         />
 
         <Kpi
@@ -531,6 +552,7 @@ function ReportsPage({
           }
           variant="rejected"
         />
+
       </section>
 
       <section className="admin-card">
@@ -1924,7 +1946,7 @@ function AnalyticsPage({
           <div className="analytics-card analytics-card-large">
 
             <AnalyticsCardHeader
-              title="Report status distribution"
+              title="Report Status Distribution"
               subtitle="Current operational workload"
             />
 
@@ -1997,7 +2019,7 @@ function AnalyticsPage({
           <div className="analytics-card">
 
             <AnalyticsCardHeader
-              title="Priority profile"
+              title="Priority Profile"
               subtitle="Severity distribution"
             />
 
@@ -2217,7 +2239,7 @@ function DepartmentsPage({
             SERVICE DELIVERY
           </div>
 
-          <h2>Department command centre</h2>
+          <h2>Department Command Centre</h2>
 
           <p>
             Monitor workload, response pressure and
@@ -2268,10 +2290,54 @@ function DepartmentsPage({
         />
       </section>
 
+      {/* ============================================================
+          UNASSIGNED REPORTS
+      ============================================================ */}
+
+      {(() => {
+        const unassignedCount = reports.filter(
+          (report) =>
+            !report.department ||
+            report.department.trim() === ""
+        ).length;
+
+        return (
+          <button
+            type="button"
+            className="admin-card unassigned-card"
+            onClick={onGoToReports}
+          >
+            <div className="unassigned-card-icon">
+              <AlertTriangle size={20} />
+            </div>
+
+            <div className="unassigned-card-content">
+              <span>Unassigned Reports</span>
+
+              <strong>{unassignedCount}</strong>
+
+              <small>
+                Awaiting departmental assignment
+              </small>
+            </div>
+
+            <ChevronRight
+              size={20}
+              className="unassigned-card-arrow"
+            />
+          </button>
+        );
+      })()}
+
+
+      {/* ============================================================
+          DEPARTMENT PERFORMANCE
+      ============================================================ */}
+
       <section className="admin-card departments-card">
         <div className="table-toolbar">
           <div>
-            <h2>Department performance</h2>
+            <h2>Department Performance</h2>
 
             <span>
               {filteredDepartments.length} departments
@@ -2311,9 +2377,11 @@ function DepartmentsPage({
             filteredDepartments.length === 0 && (
               <div className="department-empty">
                 <Building2 size={30} />
+
                 <strong>
                   No departments found
                 </strong>
+
                 <span>
                   Try another search term.
                 </span>
@@ -2983,8 +3051,13 @@ function buildDepartmentData(reports = []) {
   });
 
   reports.forEach((report) => {
-    const name =
-      report.department?.trim() || "Unassigned";
+    const name = report.department?.trim();
+
+    // Do NOT create an "Unassigned" department.
+    // Unassigned reports are displayed separately.
+    if (!name) {
+      return;
+    }
 
     if (!map[name]) {
       map[name] = createDepartmentRecord(name);
@@ -3016,15 +3089,11 @@ function buildDepartmentData(reports = []) {
         break;
     }
 
-    if (
-      report.priority === "Critical"
-    ) {
+    if (report.priority === "Critical") {
       department.critical += 1;
     }
 
-    if (
-      report.priority === "High"
-    ) {
+    if (report.priority === "High") {
       department.high += 1;
     }
   });
@@ -3046,6 +3115,7 @@ function createDepartmentRecord(name) {
     name,
     total: 0,
     open: 0,
+    assigned: 0,
     resolved: 0,
     rejected: 0,
     critical: 0,
