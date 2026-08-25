@@ -3368,3 +3368,214 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
     font-size: 11px;
   }
 }
+
+/*=============================
+
+/* ============================================================
+   REJECTION DOUBLE CONFIRMATION
+============================================================ */
+
+.rejection-confirm-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(3, 15, 12, 0.72);
+
+  backdrop-filter: blur(6px);
+}
+
+.rejection-confirm-dialog {
+  width: min(480px, 100%);
+
+  background: #ffffff;
+
+  border-radius: 18px;
+
+  padding: 26px;
+
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.28);
+
+  border: 1px solid #fee2e2;
+}
+
+.rejection-confirm-icon {
+  width: 52px;
+  height: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 16px;
+
+  border-radius: 14px;
+
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.rejection-confirm-content h2 {
+  margin: 4px 0 8px;
+
+  font-size: 21px;
+  font-weight: 800;
+
+  color: #111827;
+}
+
+.rejection-confirm-content p {
+  margin: 0 0 4px;
+
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.rejection-report-title {
+  display: block;
+
+  margin-bottom: 18px;
+
+  color: #111827;
+
+  font-size: 14px;
+}
+
+.rejection-warning {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+
+  margin: 16px 0;
+
+  padding: 13px;
+
+  border-radius: 10px;
+
+  color: #991b1b;
+  background: #fef2f2;
+
+  border: 1px solid #fecaca;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rejection-confirm-label {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+
+  margin-top: 18px;
+
+  color: #374151;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rejection-confirm-label strong {
+  color: #dc2626;
+}
+
+.rejection-confirm-label input {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 12px 13px;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 9px;
+
+  outline: none;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+}
+
+.rejection-confirm-label input:focus {
+  border-color: #dc2626;
+
+  box-shadow:
+    0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.rejection-confirm-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  margin-top: 22px;
+}
+
+.btn-danger {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  border: 0;
+
+  border-radius: 9px;
+
+  padding: 10px 15px;
+
+  color: #ffffff;
+
+  background: #dc2626;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.btn-danger:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+}
+
+@media (max-width: 650px) {
+  .rejection-confirm-overlay {
+    padding: 14px;
+  }
+
+  .rejection-confirm-dialog {
+    padding: 21px;
+
+    border-radius: 16px;
+  }
+
+  .rejection-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .rejection-confirm-actions button {
+    width: 100%;
+  }
+}
