@@ -120,6 +120,36 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+
+    async function checkAuthentication() {
+      try {
+        const result =
+          await api.governmentMe();
+
+        if (!mounted) return;
+
+        console.log(
+          "Authenticated government user:",
+          result.user
+        );
+
+        // Set authenticated user state
+      } catch {
+        if (!mounted) return;
+
+        // Redirect to government login
+      }
+    }
+
+    checkAuthentication();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === "Escape") {
         setSidebarOpen(false);
@@ -149,7 +179,11 @@ export default function AdminDashboard() {
     }
   }
 
-  async function changeStatus(status, message) {
+  async function changeStatus(
+    status,
+    message,
+    password
+  ) {
     if (!selected?.reference) return;
 
     const currentStatus =
@@ -166,7 +200,69 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Assigned requires completed routing.
+    /*
+    * REJECTION REQUIRES BACKEND PASSWORD VERIFICATION
+    */
+    if (status === "Rejected") {
+      if (!password?.trim()) {
+        window.alert(
+          "Administrator password is required."
+        );
+
+        return;
+      }
+
+      if (
+        currentStatus === "In Progress" ||
+        currentStatus === "Resolved" ||
+        currentStatus === "Rejected"
+      ) {
+        window.alert(
+          "This report can no longer be rejected."
+        );
+
+        return;
+      }
+
+      try {
+        setBusy(true);
+
+        const updated =
+          await api.rejectReport(
+            selected.reference,
+            {
+              password,
+              message: message.trim(),
+            }
+          );
+
+        setSelected(updated);
+
+        await load();
+
+        return;
+
+      } catch (error) {
+        console.error(
+          "Failed to reject report:",
+          error
+        );
+
+        window.alert(
+          error?.message ||
+            "Administrator authentication failed. The report was not rejected."
+        );
+
+        return;
+
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    /*
+    * NORMAL STATUS TRANSITION
+    */
     if (status === "Assigned") {
       const routingComplete =
         hasCompleteRouting({
@@ -3308,7 +3404,7 @@ function getStatusTransitionError(
   }
 
   const allowed =
-    getAvailableStatusTransitions(currentStatus);
+    STATUS_TRANSITIONS[currentStatus] || [];
 
   if (!allowed.includes(nextStatus)) {
     return `Invalid workflow transition: ${currentStatus} → ${nextStatus}.`;
@@ -3339,6 +3435,22 @@ function AdminModal({
 }) {
   const [message, setMessage] = useState("");
 
+  /* ============================================================
+     REJECTION CONFIRMATION
+  ============================================================ */
+
+  const [rejectConfirmOpen, setRejectConfirmOpen] =
+    useState(false);
+
+  const [rejectConfirmation, setRejectConfirmation] =
+    useState("");
+
+  const [rejectPassword, setRejectPassword] =
+    useState("");
+
+  const [rejectAuthenticating, setRejectAuthenticating] =
+    useState(false);
+
   const [department, setDepartment] = useState(
     report.department || ""
   );
@@ -3360,8 +3472,8 @@ function AdminModal({
    * Only statuses that can actually be reached from
    * the current status are displayed.
    *
-   * Rejected is handled separately because it is
-   * available from every active workflow stage.
+   * Rejected is handled separately through the
+   * double-confirmation workflow.
    */
   const availableStatuses =
     getAvailableStatusTransitions(
@@ -3424,79 +3536,6 @@ function AdminModal({
    * ------------------------------------------------------------
    */
 
-  async function changeStatus(status, message) {
-    if (!selected?.reference) return;
-
-    if (!message?.trim()) {
-      window.alert(
-        "A public update is required before changing the report status."
-      );
-      return;
-    }
-
-    const currentStatus =
-      selected.status || "Submitted";
-
-    const transitionError =
-      getStatusTransitionError(
-        currentStatus,
-        status
-      );
-
-    if (transitionError) {
-      window.alert(transitionError);
-      return;
-    }
-
-    // Assigned requires completed routing.
-    if (status === "Assigned") {
-      const routingComplete =
-        hasCompleteRouting({
-          department: selected.department,
-          assignedUnit: selected.assignedUnit,
-        });
-
-      if (!routingComplete) {
-        window.alert(
-          "Routing is required before this report can be assigned. Please select a department and enter the assigned unit."
-        );
-        return;
-      }
-    }
-
-    try {
-      setBusy(true);
-
-      const updated =
-        await api.updateStatus(
-          selected.reference,
-          {
-            status,
-            message: message.trim(),
-            isPublic: true,
-          }
-        );
-
-      setSelected(updated);
-
-      await load();
-
-    } catch (error) {
-      console.error(
-        "Failed to update status:",
-        error
-      );
-
-      window.alert(
-        error?.message ||
-          "Unable to update report status."
-      );
-
-    } finally {
-      setBusy(false);
-    }
-  }
-
   function canChangeStatus(
     current,
     next
@@ -3506,19 +3545,143 @@ function AdminModal({
     }
 
     /*
-     * Rejection is allowed from every active stage.
-     */
+    * Rejection is permitted only from active
+    * pre-In Progress stages:
+    *
+    * - Submitted
+    * - Under Review
+    * - Assigned
+    *
+    * It is NOT permitted from:
+    * - In Progress
+    * - Resolved
+    * - Rejected
+    */
+     
     if (next === "Rejected") {
       return (
         current !== "Rejected" &&
         current !== "Resolved" &&
-        current !== "In Progres"
+        current !== "In Progress"
       );
     }
 
     return (
       STATUS_TRANSITIONS[current] || []
     ).includes(next);
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * INITIATE REJECTION
+   * ------------------------------------------------------------
+   *
+   * This does NOT reject the report.
+   *
+   * It opens the second confirmation step.
+   */
+
+  function initiateRejection() {
+    /*
+    * Rejection is only permitted up to Assigned.
+    */
+    if (
+      currentStatus === "In Progress" ||
+      currentStatus === "Resolved" ||
+      currentStatus === "Rejected"
+    ) {
+      window.alert(
+        "This report can no longer be rejected."
+      );
+
+      return;
+    }
+
+    /*
+    * Public note is mandatory.
+    */
+    if (!message?.trim()) {
+      window.alert(
+        "A Public Note is required before rejecting the report."
+      );
+
+      return;
+    }
+
+    /*
+    * Open destructive-action confirmation.
+    */
+    setRejectConfirmation("");
+    setRejectPassword("");
+    setRejectConfirmOpen(true);
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * CONFIRM REJECTION
+   * ------------------------------------------------------------
+   *
+   * The report is only rejected after the administrator
+   * types REJECT.
+   */
+
+  async function confirmRejection() {
+    if (
+      rejectConfirmation.trim().toUpperCase() !==
+      "REJECT"
+    ) {
+      window.alert(
+        'Type "REJECT" exactly to confirm this action.'
+      );
+
+      return;
+    }
+
+    if (!rejectPassword.trim()) {
+      window.alert(
+        "Administrator password is required."
+      );
+
+      return;
+    }
+
+    if (
+      currentStatus === "In Progress" ||
+      currentStatus === "Resolved" ||
+      currentStatus === "Rejected"
+    ) {
+      setRejectConfirmOpen(false);
+
+      window.alert(
+        "This report can no longer be rejected."
+      );
+
+      return;
+    }
+
+    try {
+      setRejectAuthenticating(true);
+
+      await onStatus(
+        "Rejected",
+        message.trim(),
+        rejectPassword
+      );
+
+      setRejectConfirmOpen(false);
+      setRejectConfirmation("");
+      setRejectPassword("");
+      setMessage("");
+
+    } catch (error) {
+      console.error(
+        "Rejection authentication failed:",
+        error
+      );
+
+    } finally {
+      setRejectAuthenticating(false);
+    }
   }
 
   /*
@@ -3536,8 +3699,8 @@ function AdminModal({
     }
 
     /*
-    * Prevent invalid workflow transitions.
-    */
+     * Prevent invalid workflow transitions.
+     */
     if (
       !canChangeStatus(
         currentStatus,
@@ -3548,9 +3711,9 @@ function AdminModal({
     }
 
     /*
-    * Use the central transition validator
-    * for user-facing error messages.
-    */
+     * Use the central transition validator
+     * for user-facing error messages.
+     */
     const transitionError =
       getStatusTransitionError(
         currentStatus,
@@ -3563,20 +3726,20 @@ function AdminModal({
     }
 
     /*
-    * PUBLIC UPDATE IS REQUIRED
-    * FOR EVERY STATUS CHANGE.
-    */
+     * PUBLIC UPDATE IS REQUIRED
+     * FOR EVERY STATUS CHANGE.
+     */
     if (!message?.trim()) {
       window.alert(
-        "A public update is required before changing the report status."
+        "A Public Note is required before changing the report status."
       );
 
       return;
     }
 
     /*
-    * ASSIGNED requires complete routing.
-    */
+     * ASSIGNED requires complete routing.
+     */
     if (
       nextStatus === "Assigned" &&
       !routingComplete
@@ -3833,7 +3996,9 @@ function AdminModal({
               <select
                 value=""
                 onChange={(e) =>
-                  handleStatusChange(e.target.value)
+                  handleStatusChange(
+                    e.target.value
+                  )
                 }
                 disabled={
                   currentStatus === "Resolved" ||
@@ -3847,14 +4012,16 @@ function AdminModal({
                     : "Select next status"}
                 </option>
 
-                {availableStatuses.map((status) => (
-                  <option
-                    key={status}
-                    value={status}
-                  >
-                    {status}
-                  </option>
-                ))}
+                {availableStatuses.map(
+                  (status) => (
+                    <option
+                      key={status}
+                      value={status}
+                    >
+                      {status}
+                    </option>
+                  )
+                )}
               </select>
             </label>
 
@@ -3882,20 +4049,21 @@ function AdminModal({
                 REJECTION
             ================================================== */}
 
-            {["Submitted", "Under Review", "Assigned"].includes(
-              currentStatus
-            ) && (
+            {[
+              "Submitted",
+              "Under Review",
+              "Assigned",
+            ].includes(currentStatus) && (
               <button
                 type="button"
                 className="btn btn-outline"
-                onClick={() =>
-                  handleStatusChange("Rejected")
-                }
+                onClick={initiateRejection}
               >
                 <XCircle size={16} />
                 Reject Report
               </button>
             )}
+
 
             {/* ==================================================
                 REJECTED STATE
@@ -3904,7 +4072,7 @@ function AdminModal({
             {currentStatus === "Rejected" && (
               <div className="admin-note">
                 <strong>
-                  Report rejected
+                  Report Rejected
                 </strong>
 
                 <p>
@@ -3935,11 +4103,13 @@ function AdminModal({
 
           </div>
 
+
           {/* ====================================================
               LIFECYCLE RULE
           ==================================================== */}
 
           <div className="admin-note">
+
             <strong>
               Workflow Control
             </strong>
@@ -3950,9 +4120,157 @@ function AdminModal({
               • Reports may be rejected from Submitted through Assigned only.<br />
               • Once a report enters In Progress, rejection is no longer permitted.
             </p>
+
           </div>
+
         </div>
       </div>
+
+
+      {/* ========================================================
+          DOUBLE REJECTION CONFIRMATION
+      ======================================================== */}
+
+      {rejectConfirmOpen && (
+        <div className="rejection-confirm-overlay">
+          <div className="rejection-confirm-dialog">
+
+            <div className="rejection-confirm-icon">
+              <AlertTriangle size={28} />
+            </div>
+
+            <div className="rejection-confirm-content">
+
+              <div className="report-ref">
+                DESTRUCTIVE ACTION
+              </div>
+
+              <h2>
+                Confirm Report Rejection
+              </h2>
+
+              <p>
+                You are about to reject:
+              </p>
+
+              <strong className="rejection-report-title">
+                {report.reference} — {report.title}
+              </strong>
+
+              <div className="rejection-warning">
+                <AlertTriangle size={17} />
+
+                <span>
+                  Rejection will permanently close this
+                  report and it cannot be returned to the
+                  workflow.
+                </span>
+              </div>
+
+              {/* ==================================================
+                  FIRST AUTHENTICATION — CONFIRMATION
+              ================================================== */}
+
+              <label className="rejection-confirm-label">
+                Type <strong>REJECT</strong> to confirm
+
+                <input
+                  type="text"
+                  value={rejectConfirmation}
+                  onChange={(e) =>
+                    setRejectConfirmation(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Type REJECT"
+                  autoFocus
+                  autoComplete="off"
+                  disabled={rejectAuthenticating}
+                />
+              </label>
+
+              {/* ==================================================
+                  SECOND AUTHENTICATION — PASSWORD
+              ================================================== */}
+
+              <label className="rejection-confirm-label">
+                Administrator password
+
+                <input
+                  type="password"
+                  value={rejectPassword}
+                  onChange={(e) =>
+                    setRejectPassword(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Enter administrator password"
+                  autoComplete="current-password"
+                  disabled={rejectAuthenticating}
+                />
+              </label>
+
+              <div
+                style={{
+                  marginTop: "8px",
+                  color: "#b91c1c",
+                  fontSize: "12px",
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong>
+                  Security verification required.
+                </strong>{" "}
+                Your administrator password will be
+                verified securely by the CivicPort server
+                before this report is rejected.
+              </div>
+
+              {/* ==================================================
+                  ACTIONS
+              ================================================== */}
+
+              <div className="rejection-confirm-actions">
+
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  disabled={rejectAuthenticating}
+                  onClick={() => {
+                    setRejectConfirmOpen(false);
+                    setRejectConfirmation("");
+                    setRejectPassword("");
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  disabled={
+                    rejectAuthenticating ||
+                    rejectConfirmation
+                      .trim()
+                      .toUpperCase() !== "REJECT" ||
+                    !rejectPassword.trim()
+                  }
+                  onClick={confirmRejection}
+                >
+                  <XCircle size={16} />
+
+                  {rejectAuthenticating
+                    ? "Verifying..."
+                    : "Verify & Reject"}
+                </button>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
     </Modal>
   );
 }
