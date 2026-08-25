@@ -2433,7 +2433,7 @@ function DepartmentsPage({
       <section className="department-summary-grid">
         <Kpi
           icon={<ClipboardList />}
-          label="Attributed Reports"
+          label="Assigned Reports"
           value={totals.reports}
         />
 
