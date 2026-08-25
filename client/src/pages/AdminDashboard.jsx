@@ -878,10 +878,13 @@ function AnalyticsPage({
     [filteredReports]
   );
 
+  const eligibleForResolution =
+    analytics.total - (analytics.rejected || 0);
+
   const resolutionRate =
-    analytics.total > 0
+    eligibleForResolution > 0
       ? Math.round(
-          (analytics.resolved / analytics.total) * 100
+          (analytics.resolved / eligibleForResolution) * 100
         )
       : 0;
 
@@ -1399,6 +1402,10 @@ function AnalyticsPage({
           background: #2563eb;
         }
 
+        .status-bar-assigned {
+          background: #e79ac7;
+        }
+
         .status-bar-in-progress {
           background: #7c3aed;
         }
@@ -1891,7 +1898,7 @@ function AnalyticsPage({
             <div>
 
               <strong>
-                Analytics filters
+                Analytics Filters
               </strong>
 
               <span>
@@ -1953,7 +1960,6 @@ function AnalyticsPage({
 
         </section>
 
-
         {/* ========================================================
             SUMMARY METRICS
         ========================================================= */}
@@ -1962,7 +1968,7 @@ function AnalyticsPage({
 
           <AnalyticsMetric
             icon={<Activity />}
-            label="Reports analysed"
+            label="Reports Analyzed"
             value={analytics.total}
             detail={
               busy
@@ -1971,14 +1977,12 @@ function AnalyticsPage({
             }
           />
 
-
           <AnalyticsMetric
             icon={<CheckCircle2 />}
-            label="Resolution rate"
+            label="Resolution Rate"
             value={`${resolutionRate}%`}
             detail={`${analytics.resolved} resolved`}
           />
-
 
           <AnalyticsMetric
             icon={<AlertTriangle />}
@@ -1995,20 +1999,18 @@ function AnalyticsPage({
             }
           />
 
-
           <AnalyticsMetric
             icon={<Clock3 />}
-            label="Open workload"
+            label="Active Workload"
             value={
               analytics.total -
-              analytics.resolved -
-              analytics.rejected
+              (analytics.status["Resolved"] || 0) -
+              (analytics.status["Rejected"] || 0)
             }
             detail="Requires attention"
           />
 
         </section>
-
 
         {/* ========================================================
             OPERATIONAL INTELLIGENCE
@@ -2043,7 +2045,7 @@ function AnalyticsPage({
           <div className="intelligence-grid">
 
             <IntelligenceItem
-              label="Resolution performance"
+              label="Resolution Performance"
               value={`${resolutionRate}%`}
               description={
                 resolutionRate >= 80
@@ -2063,7 +2065,7 @@ function AnalyticsPage({
 
 
             <IntelligenceItem
-              label="Critical exposure"
+              label="Critical Exposure"
               value={analytics.critical}
               description={
                 analytics.critical > 0
@@ -2079,7 +2081,7 @@ function AnalyticsPage({
 
 
             <IntelligenceItem
-              label="Active workload"
+              label="Active Workload"
               value={analytics.active}
               description="Reports not yet resolved or rejected"
               tone={
@@ -2091,7 +2093,7 @@ function AnalyticsPage({
 
 
             <IntelligenceItem
-              label="High priority"
+              label="High Priority"
               value={analytics.high}
               description="High-priority cases requiring monitoring"
               tone={
@@ -2259,7 +2261,7 @@ function AnalyticsPage({
           <div className="analytics-card analytics-card-large">
 
             <AnalyticsCardHeader
-              title="Department workload"
+              title="Department Workload"
               subtitle="Reports currently attributed to each department"
             />
 
@@ -2293,7 +2295,7 @@ function AnalyticsPage({
         <section className="analytics-card">
 
           <AnalyticsCardHeader
-            title="Recent activity"
+            title="Recent Activity"
             subtitle="Latest report updates"
           />
 
@@ -2423,7 +2425,7 @@ function DepartmentsPage({
             <strong>
               {departmentData.length}
             </strong>
-            <span>Active departments</span>
+            <span>Active Departments</span>
           </div>
         </div>
       </section>
@@ -2431,14 +2433,22 @@ function DepartmentsPage({
       <section className="department-summary-grid">
         <Kpi
           icon={<ClipboardList />}
-          label="Attributed reports"
+          label="Attributed Reports"
           value={totals.reports}
         />
 
         <Kpi
           icon={<Clock3 />}
-          label="Open workload"
-          value={totals.open}
+          label="Active Workload"
+          value={
+            reports.length -
+            reports.filter(
+              (r) => r.status === "Resolved"
+            ).length -
+            reports.filter(
+              (r) => r.status === "Rejected"
+            ).length
+          }
         />
 
         <Kpi
@@ -2701,7 +2711,7 @@ function DepartmentDetail({
           </div>
 
           <div className="department-kpi-content">
-            <span>Total assigned</span>
+            <span>Total Assigned</span>
             <strong>{department.total}</strong>
             <small>Reports in department</small>
           </div>
@@ -2725,7 +2735,7 @@ function DepartmentDetail({
           </div>
 
           <div className="department-kpi-content">
-            <span>In progress</span>
+            <span>In Progress</span>
             <strong>{department.inProgress}</strong>
             <small>Currently being handled</small>
           </div>
@@ -2740,7 +2750,7 @@ function DepartmentDetail({
           <div className="department-kpi-content">
             <span>Resolved</span>
             <strong>{department.resolved}</strong>
-            <small>Completed reports</small>
+            <small>Completed Reports</small>
           </div>
         </div>
 
@@ -2751,7 +2761,7 @@ function DepartmentDetail({
           </div>
 
           <div className="department-kpi-content">
-            <span>High priority</span>
+            <span>High Priority</span>
             <strong>{department.high}</strong>
             <small>Requires attention</small>
           </div>
@@ -3182,10 +3192,15 @@ function buildAnalytics(reports = []) {
     resolved -
     rejected;
 
+  const eligibleForResolution =
+    reports.length - rejected;
+
   const resolutionRate =
-    reports.length > 0
+    eligibleForResolution > 0
       ? Math.round(
-          (resolved / reports.length) * 100
+          (resolved /
+            eligibleForResolution) *
+            100
         )
       : 0;
 
