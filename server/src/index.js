@@ -2,6 +2,9 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
 import { v2 as cloudinary } from "cloudinary";
 import { PrismaClient } from "@prisma/client";
 
@@ -23,7 +26,32 @@ cloudinary.config({
    EXPRESS CONFIGURATION
 ========================================================= */
 
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://civicportng.onrender.com",
+];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow requests without an Origin header
+      // such as server-to-server requests.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(
+        new Error("CORS origin not allowed.")
+      );
+    },
+
+    credentials: true,
+  })
+);
 
 app.use(
   express.json({
@@ -31,58 +59,289 @@ app.use(
   })
 );
 
+app.use(cookieParser());
+
 /* =========================================================
    GOVERNMENT AUTHENTICATION
 ========================================================= */
 
-app.post("/api/auth/government-login", (req, res) => {
-  const { email, password } = req.body;
+const JWT_SECRET = process.env.JWT_SECRET;
 
-  if (!email || !password) {
-    return res.status(400).json({
-      message: "Email and password are required.",
-    });
+const JWT_EXPIRES_IN =
+  process.env.JWT_EXPIRES_IN || "8h";
+
+if (!JWT_SECRET) {
+  console.error(
+    "JWT_SECRET is not configured."
+  );
+}
+
+function createGovernmentToken({
+  email,
+  role,
+}) {
+  if (!JWT_SECRET) {
+    throw new Error(
+      "JWT authentication is not configured."
+    );
   }
 
-  const validEmail = process.env.GOVERNMENT_EMAIL;
-  const validPassword = process.env.GOVERNMENT_PASSWORD;
-  const role =
-    process.env.GOVERNMENT_ROLE ||
-    "Government Administrator";
+  return jwt.sign(
+    {
+      sub: email,
+      email,
+      role,
+      type: "government",
+    },
+    JWT_SECRET,
+    {
+      expiresIn: JWT_EXPIRES_IN,
+    }
+  );
+}
 
-  // Make sure government credentials are configured
-  if (!validEmail || !validPassword) {
-    console.error(
-      "Government authentication credentials are not configured."
+function getAuthToken(req) {
+  return req.cookies?.civicport_auth || null;
+}
+
+function requireGovernmentAuth(
+  req,
+  res,
+  next
+) {
+  try {
+    const token = getAuthToken(req);
+
+    if (!token) {
+      return res.status(401).json({
+        error:
+          "Government authentication is required.",
+      });
+    }
+
+    if (!JWT_SECRET) {
+      console.error(
+        "JWT_SECRET is not configured."
+      );
+
+      return res.status(500).json({
+        error:
+          "Government authentication is not configured.",
+      });
+    }
+
+    const decoded = jwt.verify(
+      token,
+      JWT_SECRET
     );
 
-    return res.status(500).json({
-      message:
-        "Government authentication is not configured.",
-    });
-  }
+    if (
+      decoded?.type !== "government"
+    ) {
+      return res.status(403).json({
+        error:
+          "Invalid government authentication.",
+      });
+    }
 
-  const normalizedEmail = email.trim().toLowerCase();
-  const normalizedValidEmail =
-    validEmail.trim().toLowerCase();
+    req.governmentUser = {
+      email: decoded.email,
+      role: decoded.role,
+    };
 
-  if (
-    normalizedEmail !== normalizedValidEmail ||
-    password !== validPassword
-  ) {
+    next();
+  } catch (error) {
+    console.warn(
+      "Government authentication failed:",
+      error.message
+    );
+
     return res.status(401).json({
-      message: "Invalid government credentials.",
+      error:
+        "Government authentication has expired or is invalid.",
     });
   }
+}
 
-  return res.json({
-    success: true,
-    user: {
-      email: validEmail,
-      role,
-    },
-  });
-});
+
+/* =========================================================
+   GOVERNMENT LOGIN
+========================================================= */
+
+app.post(
+  "/api/auth/government-login",
+  async (req, res) => {
+    try {
+      const {
+        email,
+        password,
+      } = req.body;
+
+      if (
+        typeof email !== "string" ||
+        !email.trim()
+      ) {
+        return res.status(400).json({
+          error:
+            "Email is required.",
+        });
+      }
+
+      if (
+        typeof password !== "string" ||
+        !password
+      ) {
+        return res.status(400).json({
+          error:
+            "Password is required.",
+        });
+      }
+
+      const validEmail =
+        process.env.GOVERNMENT_EMAIL;
+
+      const passwordHash =
+        process.env.GOVERNMENT_PASSWORD_HASH;
+
+      const role =
+        process.env.GOVERNMENT_ROLE ||
+        "Government Administrator";
+
+      if (
+        !validEmail ||
+        !passwordHash ||
+        !JWT_SECRET
+      ) {
+        console.error(
+          "Government authentication environment variables are not configured."
+        );
+
+        return res.status(500).json({
+          error:
+            "Government authentication is not configured.",
+        });
+      }
+
+      const normalizedEmail =
+        email.trim().toLowerCase();
+
+      const normalizedValidEmail =
+        validEmail.trim().toLowerCase();
+
+      if (
+        normalizedEmail !==
+        normalizedValidEmail
+      ) {
+        return res.status(401).json({
+          error:
+            "Invalid government credentials.",
+        });
+      }
+
+      const passwordValid =
+        await bcrypt.compare(
+          password,
+          passwordHash
+        );
+
+      if (!passwordValid) {
+        return res.status(401).json({
+          error:
+            "Invalid government credentials.",
+        });
+      }
+
+      const token =
+        createGovernmentToken({
+          email: validEmail,
+          role,
+        });
+
+      res.cookie(
+        "civicport_auth",
+        token,
+        {
+          httpOnly: true,
+          secure:
+            process.env.NODE_ENV ===
+            "production",
+          sameSite:
+            process.env.NODE_ENV ===
+            "production"
+              ? "none"
+              : "lax",
+          maxAge: 8 * 60 * 60 * 1000,
+          path: "/",
+        }
+      );
+
+      return res.json({
+        success: true,
+
+        user: {
+          email: validEmail,
+          role,
+        },
+      });
+    } catch (error) {
+      console.error(
+        "Government login failed:",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          "Government authentication failed.",
+      });
+    }
+  }
+);
+
+/* =========================================================
+   GOVERNMENT LOGOUT
+========================================================= */
+
+app.post(
+  "/api/auth/government-logout",
+  (_req, res) => {
+    res.clearCookie(
+      "civicport_auth",
+      {
+        httpOnly: true,
+        secure:
+          process.env.NODE_ENV ===
+          "production",
+        sameSite:
+          process.env.NODE_ENV ===
+          "production"
+            ? "none"
+            : "lax",
+        path: "/",
+      }
+    );
+
+    res.json({
+      success: true,
+      message:
+        "Government session ended.",
+    });
+  }
+);
+
+/* =========================================================
+   CURRENT GOVERNMENT USER
+========================================================= */
+
+app.get(
+  "/api/auth/me",
+  requireGovernmentAuth,
+  (req, res) => {
+    res.json({
+      authenticated: true,
+      user: req.governmentUser,
+    });
+  }
+);
 
 /* =========================================================
    ROOT
@@ -219,7 +478,6 @@ const STATUS_TRANSITIONS = {
 
   "In Progress": [
     "Resolved",
-    "Rejected",
   ],
 
   Resolved: [],
@@ -1141,12 +1399,257 @@ app.post(
   }
 );
 
+/* ============================================================
+   REJECT REPORT
+   ------------------------------------------------------------
+   Destructive action requiring:
+
+   1. Frontend confirmation
+   2. Administrator password
+   3. Backend password verification
+   4. Server-side workflow validation
+
+   Password is NEVER stored in the database or frontend.
+============================================================ */
+
+app.post(
+  "/api/reports/:reference/reject",
+  requireGovernmentAuth,
+  async (req, res) => {
+    try {
+      const {
+        password,
+        message,
+        isPublic = true,
+      } = req.body;
+
+      /* --------------------------------------------------------
+         VALIDATE ADMINISTRATOR PASSWORD INPUT
+      -------------------------------------------------------- */
+
+      if (
+        typeof password !== "string" ||
+        !password
+      ) {
+        return res.status(401).json({
+          error:
+            "Administrator password is required.",
+        });
+      }
+
+      /* --------------------------------------------------------
+         VERIFY GOVERNMENT PASSWORD
+         --------------------------------------------------------
+
+            Password hash remains server-side in:
+
+              GOVERNMENT_PASSWORD_HASH
+
+            The plaintext password is never stored
+            or returned to the client.
+                   
+      -------------------------------------------------------- */
+
+      const passwordHash =
+        process.env.GOVERNMENT_PASSWORD_HASH;
+
+      if (!passwordHash) {
+        console.error(
+          "Government password hash is not configured."
+        );
+
+        return res.status(500).json({
+          error:
+            "Government authentication is not configured.",
+        });
+      }
+
+      const passwordValid =
+        await bcrypt.compare(
+          password,
+          passwordHash
+        );
+
+      if (!passwordValid) {
+        console.warn(
+          `Rejected authentication attempt for report ${req.params.reference}`
+        );
+
+        return res.status(401).json({
+          error:
+            "Administrator authentication failed.",
+        });
+      }
+
+      /* --------------------------------------------------------
+         PUBLIC MESSAGE IS REQUIRED
+      -------------------------------------------------------- */
+
+      if (
+        typeof message !== "string" ||
+        !message.trim()
+      ) {
+        return res.status(400).json({
+          error:
+            "A Public Note is required before rejecting the report.",
+        });
+      }
+
+      /* --------------------------------------------------------
+         FIND REPORT
+      -------------------------------------------------------- */
+
+      const report =
+        await prisma.report.findUnique({
+          where: {
+            reference:
+              req.params.reference,
+          },
+        });
+
+      if (!report) {
+        return res.status(404).json({
+          error:
+            "Report not found.",
+        });
+      }
+
+      const currentStatus =
+        report.status || "Submitted";
+
+      /* --------------------------------------------------------
+         FINAL SERVER-SIDE REJECTION CUTOFF
+      -------------------------------------------------------- */
+
+      if (
+        currentStatus === "In Progress"
+      ) {
+        return res.status(400).json({
+          error:
+            "This report can no longer be rejected because it is already In Progress.",
+        });
+      }
+
+      if (
+        currentStatus === "Resolved"
+      ) {
+        return res.status(400).json({
+          error:
+            "Resolved reports cannot be rejected.",
+        });
+      }
+
+      if (
+        currentStatus === "Rejected"
+      ) {
+        return res.status(400).json({
+          error:
+            "This report has already been rejected.",
+        });
+      }
+
+      /* --------------------------------------------------------
+         SERVER-SIDE WORKFLOW VALIDATION
+      -------------------------------------------------------- */
+
+      const transitionError =
+        getStatusTransitionError(
+          currentStatus,
+          "Rejected"
+        );
+
+      if (transitionError) {
+        return res.status(400).json({
+          error:
+            transitionError,
+        });
+      }
+
+      /* --------------------------------------------------------
+         PERFORM REJECTION
+
+         Update report status and create the public
+         lifecycle event in the same transaction.
+      -------------------------------------------------------- */
+
+      const updated =
+        await prisma.$transaction(
+          async (tx) => {
+            const rejected =
+              await tx.report.update({
+                where: {
+                  reference:
+                    req.params.reference,
+                },
+
+                data: {
+                  status: "Rejected",
+
+                  updates: {
+                    create: {
+                      status: "Rejected",
+
+                      message:
+                        message.trim(),
+
+                      isPublic:
+                        Boolean(isPublic),
+
+                      photoUrl:
+                        null,
+                    },
+                  },
+                },
+
+                include: {
+                  updates: {
+                    orderBy: {
+                      createdAt: "asc",
+                    },
+                  },
+                },
+              });
+
+            return rejected;
+          }
+        );
+
+      /* --------------------------------------------------------
+         SECURITY LOGGING
+
+         Do NOT log the password.
+      -------------------------------------------------------- */
+
+      console.log(
+        `Report ${report.reference}: ${currentStatus} → Rejected`
+      );
+
+      res.json(
+        normalizeReport(updated)
+      );
+
+    } catch (error) {
+      console.error(
+        "Failed to reject report:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          error.message ||
+          "Failed to reject report.",
+      });
+    }
+  }
+);
+
 /* =========================================================
    UPDATE REPORT STATUS
 ========================================================= */
 
 app.patch(
   "/api/reports/:reference/status",
+  requireGovernmentAuth,
   async (req, res) => {
     try {
       const {
@@ -1193,9 +1696,6 @@ app.patch(
 
       /* -----------------------------------------
          SAME STATUS
-
-         Do not create a duplicate lifecycle
-         event when status has not changed.
       ----------------------------------------- */
 
       if (
@@ -1204,6 +1704,21 @@ app.patch(
         return res.status(400).json({
           error:
             `Report is already in ${status} status.`,
+        });
+      }
+
+      /* -----------------------------------------
+         PUBLIC NOTE IS REQUIRED
+         FOR EVERY STATUS CHANGE
+      ----------------------------------------- */
+
+      if (
+        typeof message !== "string" ||
+        !message.trim()
+      ) {
+        return res.status(400).json({
+          error:
+            "A public note is required before changing the report status.",
         });
       }
 
@@ -1266,10 +1781,7 @@ app.patch(
                 status,
 
                 message:
-                  typeof message === "string" &&
-                  message.trim()
-                    ? message.trim()
-                    : `Status changed to ${status}.`,
+                  message.trim(),
 
                 isPublic:
                   Boolean(isPublic),
@@ -1317,6 +1829,7 @@ app.patch(
 
 app.patch(
   "/api/reports/:reference/assignment",
+  requireGovernmentAuth,
   async (req, res) => {
     try {
       const {
@@ -1357,6 +1870,18 @@ app.patch(
         return res.status(404).json({
           error:
             "Report not found.",
+        });
+      }
+
+      /* -----------------------------------------
+        ASSIGNMENT CHANGES ARE ONLY PERMITTED
+        DURING UNDER REVIEW
+      ----------------------------------------- */
+
+      if (existing.status !== "Under Review") {
+        return res.status(400).json({
+          error:
+            `Assignment changes are only permitted while the report is Under Review. Current status: ${existing.status}.`,
         });
       }
 
@@ -1499,6 +2024,7 @@ app.patch(
 
 app.post(
   "/api/reports/:reference/updates",
+  requireGovernmentAuth,
   upload.single("photo"),
   async (req, res) => {
     try {
