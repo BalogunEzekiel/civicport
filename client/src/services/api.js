@@ -1,7 +1,13 @@
 const API = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api`;
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API}${path}`, options);
+  const response = await fetch(
+    `${API}${path}`,
+    {
+      ...options,
+      credentials: "include",
+    }
+  );
 
   const text = await response.text();
 
@@ -27,6 +33,7 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  
   /* =====================================================
      DASHBOARD STATISTICS
   ===================================================== */
@@ -76,6 +83,22 @@ export const api = {
     }),
 
   /* =====================================================
+     REJECT REPORT
+     
+     Destructive action requiring administrator
+     password verification on the backend.
+  ===================================================== */
+
+  rejectReport: (reference, body) =>
+    request(`/reports/${reference}/reject`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }),
+
+  /* =====================================================
      ASSIGNMENT
   ===================================================== */
 
@@ -99,20 +122,38 @@ export const api = {
     }),
 
   /* =====================================================
-     GOVERNMENT LOGIN
+    GOVERNMENT AUTHENTICATION
   ===================================================== */
 
-  governmentLogin: (email, password) =>
-    request("/auth/government-login", {
-      method: "POST",
+  governmentLogin: (
+    email,
+    password
+  ) =>
+    request(
+      "/auth/government-login",
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json",
-      },
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
 
-      body: JSON.stringify({
-        email,
-        password,
-      }),
-    }),
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      }
+    ),
+
+  governmentLogout: () =>
+    request(
+      "/auth/government-logout",
+      {
+        method: "POST",
+      }
+    ),
+
+  governmentMe: () =>
+    request("/auth/me"),
 };
