@@ -2470,46 +2470,6 @@ function DepartmentsPage({
       </section>
 
       {/* ============================================================
-          UNASSIGNED REPORTS
-      ============================================================ */}
-
-      {(() => {
-        const unassignedCount = reports.filter(
-          (report) =>
-            !report.department ||
-            report.department.trim() === ""
-        ).length;
-
-        return (
-          <button
-            type="button"
-            className="admin-card unassigned-card"
-            onClick={onGoToReports}
-          >
-            <div className="unassigned-card-icon">
-              <AlertTriangle size={20} />
-            </div>
-
-            <div className="unassigned-card-content">
-              <span>Unassigned Reports</span>
-
-              <strong>{unassignedCount}</strong>
-
-              <small>
-                Awaiting departmental assignment
-              </small>
-            </div>
-
-            <ChevronRight
-              size={20}
-              className="unassigned-card-arrow"
-            />
-          </button>
-        );
-      })()}
-
-
-      {/* ============================================================
           DEPARTMENT PERFORMANCE
       ============================================================ */}
 
