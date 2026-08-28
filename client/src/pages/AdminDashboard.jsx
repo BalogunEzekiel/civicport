@@ -2434,35 +2434,55 @@ function DepartmentsPage({
         <Kpi
           icon={<ClipboardList />}
           label="Assigned Reports"
-          value={totals.reports}
+          value={reports.filter(
+            (r) =>
+              r.department &&
+              r.department.trim() !== "" &&
+              r.status !== "Rejected"
+          ).length}
         />
 
         <Kpi
           icon={<Clock3 />}
-          label="Active Workload"
-          value={
-            reports.length -
-            reports.filter(
-              (r) => r.status === "Resolved"
-            ).length -
-            reports.filter(
-              (r) => r.status === "Rejected"
-            ).length
-          }
+          label="Open Workflow"
+          value={reports.filter(
+            (r) =>
+              r.department &&
+              r.department.trim() !== "" &&
+              r.status !== "Resolved" &&
+              r.status !== "Rejected"
+          ).length}
         />
 
         <Kpi
           icon={<CheckCircle2 />}
           label="Resolved"
-          value={totals.resolved}
+          value={reports.filter(
+            (r) =>
+              r.department &&
+              r.department.trim() !== "" &&
+              r.status === "Resolved"
+          ).length}
         />
 
         <Kpi
           icon={<AlertTriangle />}
           label="Critical"
-          value={totals.critical}
+          value={reports.filter(
+            (r) =>
+              r.department &&
+              r.department.trim() !== "" &&
+              r.priority === "Critical" &&
+              r.status !== "Rejected"
+          ).length}
           variant={
-            totals.critical > 0
+            reports.some(
+              (r) =>
+                r.department &&
+                r.department.trim() !== "" &&
+                r.priority === "Critical" &&
+                r.status !== "Rejected"
+            )
               ? "rejected"
               : ""
           }
