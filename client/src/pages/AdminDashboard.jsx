@@ -2704,7 +2704,14 @@ function DepartmentDetail({
 
           <div className="department-kpi-content">
             <span>Open</span>
-            <strong>{department.open}</strong>
+            <strong>
+              {Math.max(
+                0,
+                department.total -
+                  department.inProgress -
+                  department.resolved
+              )}
+            </strong>
             <small>Awaiting action</small>
           </div>
         </div>
@@ -3208,8 +3215,7 @@ function buildAnalytics(reports = []) {
 function buildDepartmentData(reports = []) {
   const map = {};
 
-  // Always create known departments so that departments
-  // with zero reports are still visible.
+  // Create known departments
   DEFAULT_DEPARTMENTS.forEach((name) => {
     map[name] = createDepartmentRecord(name);
   });
@@ -3217,11 +3223,11 @@ function buildDepartmentData(reports = []) {
   reports.forEach((report) => {
     const name = report.department?.trim();
 
-    // Do NOT create an "Unassigned" department.
-    // Unassigned reports are displayed separately.
-    if (!name) {
-      return;
-    }
+    // Never include unassigned reports
+    if (!name) return;
+
+    // Never include rejected reports in departmental metrics
+    if (report.status === "Rejected") return;
 
     if (!map[name]) {
       map[name] = createDepartmentRecord(name);
@@ -3234,10 +3240,6 @@ function buildDepartmentData(reports = []) {
     switch (report.status) {
       case "Resolved":
         department.resolved += 1;
-        break;
-
-      case "Rejected":
-        department.rejected += 1;
         break;
 
       case "Assigned":
@@ -3262,16 +3264,13 @@ function buildDepartmentData(reports = []) {
     }
   });
 
-  return Object.values(map).sort(
-    (a, b) => {
-      // Departments with active workload first
-      if (b.open !== a.open) {
-        return b.open - a.open;
-      }
-
-      return a.name.localeCompare(b.name);
+  return Object.values(map).sort((a, b) => {
+    if (b.open !== a.open) {
+      return b.open - a.open;
     }
-  );
+
+    return a.name.localeCompare(b.name);
+  });
 }
 
 function createDepartmentRecord(name) {
