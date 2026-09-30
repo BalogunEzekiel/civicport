@@ -497,10 +497,11 @@ function ReportForm({ onClose, onCreated }) {
         setLocating(false);
         setError(
           verificationError.message ||
-          "The street could not be verified. Please try location detection again."
+          "CivicPort could not reliably identify the street at your current location."
         );
+
         setLocationMessage(
-          "Street verification failed."
+          "GPS detected, but the street could not be verified."
         );
       }
     };

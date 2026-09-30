@@ -944,73 +944,104 @@ app.get("/api/stats", async (_, res) => {
 /* =========================================================
    PROFESSIONAL LOCATION VERIFICATION
    ---------------------------------------------------------
-   CivicPort treats GPS coordinates and reverse geocoding as
-   separate evidence layers. The browser supplies coordinates;
-   the server independently resolves them to a street/address
-   and stores the server-verified result.
+   CivicPort uses:
 
-   A report is never accepted using a client-supplied address
-   alone.
+   1. Device GPS coordinates
+   2. Device-reported GPS accuracy
+   3. Server-side reverse geocoding
+   4. Multiple geocoding levels
+   5. Server-derived street/address
+   6. Human confirmation
+
+   Client-supplied location labels are NEVER authoritative.
 ========================================================= */
 
 const LOCATION_MAX_ACCURACY_METERS = 100;
 const GEOCODE_TIMEOUT_MS = 10000;
 
 function normalizeText(value) {
-  return typeof value === "string" ? value.trim() : "";
+  return typeof value === "string"
+    ? value.trim()
+    : "";
 }
 
 function firstNonEmpty(...values) {
-  return values.map(normalizeText).find(Boolean) || "";
+  return values
+    .map(normalizeText)
+    .find(Boolean) || "";
 }
 
-function buildVerifiedLocation(data, latitude, longitude) {
+function buildVerifiedLocation(
+  data,
+  latitude,
+  longitude
+) {
   const address = data?.address || {};
 
+  /*
+   * OSM/Nominatim may use different fields depending
+   * on how the road has been mapped.
+   */
   const streetName = firstNonEmpty(
     address.road,
+    address.residential,
     address.pedestrian,
     address.cycleway,
     address.footway,
-    address.highway,
-    address.residential
+    address.path,
+    address.track,
+    address.highway
   );
 
-  const houseNumber = firstNonEmpty(
-    address.house_number
-  );
+  const houseNumber =
+    firstNonEmpty(
+      address.house_number
+    );
 
-  const neighbourhood = firstNonEmpty(
-    address.neighbourhood,
-    address.suburb,
-    address.quarter,
-    address.city_district,
-    address.district
-  );
+  const neighbourhood =
+    firstNonEmpty(
+      address.neighbourhood,
+      address.suburb,
+      address.quarter,
+      address.city_district,
+      address.district
+    );
 
-  const city = firstNonEmpty(
-    address.city,
-    address.town,
-    address.municipality,
-    address.village,
-    address.city_district
-  );
+  const city =
+    firstNonEmpty(
+      address.city,
+      address.town,
+      address.municipality,
+      address.village,
+      address.city_district
+    );
 
-  const state = firstNonEmpty(
-    address.state,
-    address.state_district,
-    address.region
-  );
+  const state =
+    firstNonEmpty(
+      address.state,
+      address.state_district,
+      address.region
+    );
 
-  const country = firstNonEmpty(address.country);
-  const countryCode = firstNonEmpty(address.country_code).toLowerCase();
-  const postalCode = firstNonEmpty(address.postcode);
+  const country =
+    firstNonEmpty(
+      address.country
+    );
 
-  /*
-   * A street is the minimum human-readable location required
-   * by CivicPort for a report. Coordinates alone are not enough.
-   */
-  const streetAddress = [houseNumber, streetName]
+  const countryCode =
+    firstNonEmpty(
+      address.country_code
+    ).toLowerCase();
+
+  const postalCode =
+    firstNonEmpty(
+      address.postcode
+    );
+
+  const streetAddress = [
+    houseNumber,
+    streetName
+  ]
     .filter(Boolean)
     .join(" ")
     .trim();
@@ -1033,7 +1064,11 @@ function buildVerifiedLocation(data, latitude, longitude) {
   ];
 
   return {
-    verified: Boolean(streetName),
+    verified: Boolean(
+      streetName &&
+      (city || state || country)
+    ),
+
     streetAddress,
     streetName,
     neighbourhood,
@@ -1042,72 +1077,31 @@ function buildVerifiedLocation(data, latitude, longitude) {
     country,
     countryCode,
     postalCode,
+
     locationLabel:
       uniqueParts.length
         ? uniqueParts.join(", ")
-        : normalizeText(data?.display_name),
+        : normalizeText(
+            data?.display_name
+          ),
+
     displayName:
-      normalizeText(data?.display_name) ||
+      normalizeText(
+        data?.display_name
+      ) ||
       uniqueParts.join(", "),
+
     latitude,
     longitude,
+
     address
   };
 }
 
-async function reverseGeocodeCoordinates(latitude, longitude) {
-  const url = new URL(
-    "https://nominatim.openstreetmap.org/reverse"
-  );
-
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("lat", String(latitude));
-  url.searchParams.set("lon", String(longitude));
-  url.searchParams.set("zoom", "18");
-  url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("accept-language", "en");
-
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    GEOCODE_TIMEOUT_MS
-  );
-
-  try {
-    const response = await fetch(
-      url.toString(),
-      {
-        signal: controller.signal,
-        headers: {
-          "User-Agent":
-            "CivicPort/1.0 (+https://civicportng.onrender.com)",
-          "Accept":
-            "application/json"
-        }
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Geocoding service returned ${response.status}`
-      );
-    }
-
-    const data = await response.json();
-
-    if (!data || data.error) {
-      throw new Error(
-        "The geocoding provider returned no usable location."
-      );
-    }
-
-    return data;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-function validateCoordinates(latitude, longitude) {
+function validateCoordinates(
+  latitude,
+  longitude
+) {
   return (
     Number.isFinite(latitude) &&
     Number.isFinite(longitude) &&
@@ -1119,18 +1113,199 @@ function validateCoordinates(latitude, longitude) {
 }
 
 /* =========================================================
-   REVERSE GEOCODING + LOCATION VERIFICATION
+   NOMINATIM REQUEST
+========================================================= */
+
+async function requestNominatimReverse(
+  latitude,
+  longitude,
+  zoom
+) {
+  const url = new URL(
+    "https://nominatim.openstreetmap.org/reverse"
+  );
+
+  url.searchParams.set(
+    "format",
+    "jsonv2"
+  );
+
+  url.searchParams.set(
+    "lat",
+    String(latitude)
+  );
+
+  url.searchParams.set(
+    "lon",
+    String(longitude)
+  );
+
+  url.searchParams.set(
+    "zoom",
+    String(zoom)
+  );
+
+  url.searchParams.set(
+    "addressdetails",
+    "1"
+  );
+
+  url.searchParams.set(
+    "accept-language",
+    "en"
+  );
+
+  const controller =
+    new AbortController();
+
+  const timeout =
+    setTimeout(
+      () =>
+        controller.abort(),
+      GEOCODE_TIMEOUT_MS
+    );
+
+  try {
+    const response =
+      await fetch(
+        url.toString(),
+        {
+          signal:
+            controller.signal,
+
+          headers: {
+            "User-Agent":
+              "CivicPort/1.0 (+https://civicportng.onrender.com)",
+
+            "Accept":
+              "application/json"
+          }
+        }
+      );
+
+    if (!response.ok) {
+      throw new Error(
+        `Geocoding service returned ${response.status}`
+      );
+    }
+
+    const data =
+      await response.json();
+
+    if (
+      !data ||
+      data.error
+    ) {
+      throw new Error(
+        "Geocoder returned no usable location."
+      );
+    }
+
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/* =========================================================
+   ROBUST REVERSE GEOCODING
+   ---------------------------------------------------------
+   Try several geographic detail levels.
+
+   18 = exact address
+   17 = street/locality
+   16 = road/locality
+   15 = broader road/locality
+========================================================= */
+
+async function reverseGeocodeCoordinates(
+  latitude,
+  longitude
+) {
+  const zoomLevels = [
+    18,
+    17,
+    16,
+    15
+  ];
+
+  let lastData = null;
+
+  for (
+    const zoom of zoomLevels
+  ) {
+    try {
+      const data =
+        await requestNominatimReverse(
+          latitude,
+          longitude,
+          zoom
+        );
+
+      lastData = data;
+
+      const verified =
+        buildVerifiedLocation(
+          data,
+          latitude,
+          longitude
+        );
+
+      if (
+        verified.verified &&
+        verified.streetName
+      ) {
+        return data;
+      }
+    } catch (error) {
+      console.warn(
+        `Reverse geocoding attempt at zoom ${zoom} failed:`,
+        error.message
+      );
+    }
+  }
+
+  /*
+   * Return the best available result so the caller
+   * can provide a meaningful verification response.
+   */
+  if (lastData) {
+    return lastData;
+  }
+
+  throw new Error(
+    "No usable location was returned by the geocoding provider."
+  );
+}
+
+/* =========================================================
+   REVERSE GEOCODING ENDPOINT
 ========================================================= */
 
 app.get(
   "/api/geocode/reverse",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
-      const lat = Number(req.query.lat);
-      const lon = Number(req.query.lon);
-      const accuracy = Number(req.query.accuracy);
+      const lat =
+        Number(req.query.lat);
 
-      if (!validateCoordinates(lat, lon)) {
+      const lon =
+        Number(req.query.lon);
+
+      const accuracy =
+        Number(
+          req.query.accuracy
+        );
+
+      if (
+        !validateCoordinates(
+          lat,
+          lon
+        )
+      ) {
         return res.status(400).json({
           verified: false,
           error:
@@ -1139,15 +1314,23 @@ app.get(
       }
 
       if (
-        Number.isFinite(accuracy) &&
-        accuracy > LOCATION_MAX_ACCURACY_METERS
+        Number.isFinite(
+          accuracy
+        ) &&
+        accuracy >
+          LOCATION_MAX_ACCURACY_METERS
       ) {
         return res.status(422).json({
           verified: false,
+
           error:
-            `Location accuracy is too low. CivicPort requires a GPS accuracy of ${LOCATION_MAX_ACCURACY_METERS}m or better.`,
+            `Location accuracy is approximately ${Math.round(
+              accuracy
+            )}m. CivicPort requires ${LOCATION_MAX_ACCURACY_METERS}m or better.`,
+
           maxAccuracyMeters:
             LOCATION_MAX_ACCURACY_METERS,
+
           accuracy
         });
       }
@@ -1165,30 +1348,40 @@ app.get(
           lon
         );
 
-      if (!verified.verified) {
+      if (
+        !verified.verified ||
+        !verified.streetName
+      ) {
         return res.status(422).json({
           ...verified,
+
           verified: false,
+
           error:
-            "CivicPort could not identify a reliable street or road at this location. Please try again."
+            "CivicPort detected your GPS position, but the mapping service could not reliably identify the street or road. Please move to an area with a clearer GPS signal and try again."
         });
       }
 
-      res.json({
+      return res.json({
         ...verified,
+
         verified: true,
-        source: "server-reverse-geocoding"
+
+        source:
+          "server-reverse-geocoding"
       });
+
     } catch (error) {
       console.error(
         "Reverse geocoding failed:",
         error
       );
 
-      res.status(503).json({
+      return res.status(503).json({
         verified: false,
+
         error:
-          "CivicPort could not verify this location right now. Please try location detection again."
+          "CivicPort could not verify this location right now. Please try again."
       });
     }
   }
@@ -1562,13 +1755,54 @@ app.post(
               description.trim(),
 
             latitude:
-              parsedLatitude,
+              verifiedLocation.latitude,
 
             longitude:
-              parsedLongitude,
+              verifiedLocation.longitude,
+
+            accuracy:
+              parsedAccuracy,
 
             locationLabel:
-              locationLabel.trim(),
+              verifiedLocation.locationLabel,
+
+            streetAddress:
+              verifiedLocation.streetAddress ||
+              null,
+
+            streetName:
+              verifiedLocation.streetName ||
+              null,
+
+            neighbourhood:
+              verifiedLocation.neighbourhood ||
+              null,
+
+            city:
+              verifiedLocation.city ||
+              null,
+
+            state:
+              verifiedLocation.state ||
+              null,
+
+            country:
+              verifiedLocation.country ||
+              null,
+
+            countryCode:
+              verifiedLocation.countryCode ||
+              null,
+
+            postalCode:
+              verifiedLocation.postalCode ||
+              null,
+
+            locationVerified:
+              true,
+
+            locationSource:
+              "server-reverse-geocoding",
 
             photoUrl,
 
