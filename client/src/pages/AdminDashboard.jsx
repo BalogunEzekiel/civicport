@@ -24,6 +24,9 @@ import {
   XCircle,
   UserCircle,
   LogOut,
+  Sparkles,
+  Bot,
+  BrainCircuit,
 } from "lucide-react";
 
 import Logo from "../components/Logo";
@@ -839,6 +842,23 @@ function AnalyticsPage({
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [departmentFilter, setDepartmentFilter] = useState("All");
+  const [aiOps, setAiOps] = useState(null);
+  const [aiOpsBusy, setAiOpsBusy] = useState(false);
+
+  async function runAIIntelligence() {
+    try {
+      setAiOpsBusy(true);
+      const result = await api.aiOperations();
+      setAiOps(result);
+    } catch (error) {
+      window.alert(
+        error?.message ||
+          "Unable to generate AI operations intelligence."
+      );
+    } finally {
+      setAiOpsBusy(false);
+    }
+  }
 
   const departments = useMemo(() => {
     return uniqueSorted(
@@ -2107,6 +2127,159 @@ function AnalyticsPage({
 
         </section>
 
+
+        {/* ========================================================
+            CIVICPORT AI OPERATIONS COPILOT
+        ========================================================= */}
+
+        <section className="analytics-intelligence">
+          <div className="analytics-intelligence-header">
+            <div>
+              <span className="eyebrow">
+                CIVICPORT AI OPERATIONS COPILOT
+              </span>
+
+              <h2>
+                Turn report data into operational insight.
+              </h2>
+
+              <p>
+                AI reviews the current report portfolio for recurring
+                issues, operational pressure and practical next actions.
+                Recommendations remain subject to human review.
+              </p>
+            </div>
+
+            <Bot size={24} />
+          </div>
+
+          {!aiOps && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={runAIIntelligence}
+              disabled={aiOpsBusy}
+            >
+              <Sparkles size={16} />
+              {aiOpsBusy
+                ? "Generating intelligence..."
+                : "Run AI Operations Analysis"}
+            </button>
+          )}
+
+          {aiOps?.brief && (
+            <div style={{
+              display: "grid",
+              gap: "14px"
+            }}>
+              <div className="admin-note">
+                <strong>Situation Summary</strong>
+                <p>{aiOps.brief.situationSummary}</p>
+              </div>
+
+              <div className="intelligence-grid">
+                <div className="intelligence-item">
+                  <div className="intelligence-item-label">
+                    TOP PRIORITIES
+                  </div>
+                  <div className="intelligence-item-description">
+                    <ul style={{ margin: "8px 0 0", paddingLeft: "18px" }}>
+                      {(aiOps.brief.topPriorities || []).map(
+                        (item, index) => (
+                          <li key={index} style={{ marginBottom: "6px" }}>
+                            {item}
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="intelligence-item">
+                  <div className="intelligence-item-label">
+                    EMERGING PATTERNS
+                  </div>
+                  <div className="intelligence-item-description">
+                    <ul style={{ margin: "8px 0 0", paddingLeft: "18px" }}>
+                      {(aiOps.brief.emergingPatterns || []).map(
+                        (item, index) => (
+                          <li key={index} style={{ marginBottom: "6px" }}>
+                            {item}
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="intelligence-item">
+                  <div className="intelligence-item-label">
+                    RESOURCE SIGNALS
+                  </div>
+                  <div className="intelligence-item-description">
+                    <ul style={{ margin: "8px 0 0", paddingLeft: "18px" }}>
+                      {(aiOps.brief.resourceSignals || []).map(
+                        (item, index) => (
+                          <li key={index} style={{ marginBottom: "6px" }}>
+                            {item}
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="intelligence-item">
+                  <div className="intelligence-item-label">
+                    RECOMMENDED ACTIONS
+                  </div>
+                  <div className="intelligence-item-description">
+                    <ul style={{ margin: "8px 0 0", paddingLeft: "18px" }}>
+                      {(aiOps.brief.recommendedActions || []).map(
+                        (item, index) => (
+                          <li key={index} style={{ marginBottom: "6px" }}>
+                            {item}
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+                flexWrap: "wrap"
+              }}>
+                <span style={{
+                  color: "#64748b",
+                  fontSize: "11px"
+                }}>
+                  AI confidence:{" "}
+                  {Math.round(
+                    Number(aiOps.brief.confidence || 0) * 100
+                  )}%
+                </span>
+
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={runAIIntelligence}
+                  disabled={aiOpsBusy}
+                >
+                  <RefreshCw
+                    size={15}
+                    className={aiOpsBusy ? "spin" : ""}
+                  />
+                  Regenerate
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* ========================================================
             STATUS + PRIORITY
@@ -3459,6 +3632,36 @@ function AdminModal({
 
   const [saving, setSaving] = useState(false);
 
+  /*
+  * ============================================================
+  * CIVICPORT AI STATE
+  * ============================================================
+  *
+  * aiAnalysis:
+  *   Initial AI triage/assessment.
+  *
+  * aiBrief:
+  *   Operational AI Copilot brief.
+  *
+  * aiBusy:
+  *   Loading state for the initial report analysis.
+  *
+  * aiBriefBusy:
+  *   Loading state for the operational brief.
+  *
+  * aiCopilotOpen:
+  *   Controls whether the full Copilot brief is displayed.
+  */
+
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiBrief, setAiBrief] = useState(null);
+
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiBriefBusy, setAiBriefBusy] = useState(false);
+
+  const [aiCopilotOpen, setAiCopilotOpen] =
+    useState(false);
+
   const currentStatus =
     report.status || "Submitted";
 
@@ -3486,6 +3689,173 @@ function AdminModal({
    */
   const assigning =
     availableStatuses.includes("Assigned");
+
+  /*
+   * ------------------------------------------------------------
+   * CIVICPORT AI COPILOT
+   * ------------------------------------------------------------
+   */
+
+  /*
+  * ============================================================
+  * CIVICPORT AI — INITIAL REPORT ANALYSIS
+  * ============================================================
+  *
+  * This performs the first AI assessment only.
+  *
+  * It does NOT automatically generate the operational brief.
+  *
+  * Flow:
+  *
+  * Analyze with AI
+  *        ↓
+  * AI Analysis completed
+  *        ↓
+  * Open AI Copilot
+  *        ↓
+  * Generate operational brief
+  */
+
+  async function runAI() {
+    try {
+      setAiBusy(true);
+
+      const analysisResult =
+        await api.aiAnalyzeReport(
+          report.reference
+        );
+
+      const analysis =
+        analysisResult?.analysis || null;
+
+      setAiAnalysis(analysis);
+
+      /*
+      * A new analysis means the previous Copilot
+      * brief may no longer represent the latest
+      * AI assessment.
+      *
+      * Therefore clear it.
+      */
+      setAiBrief(null);
+
+      setAiCopilotOpen(false);
+
+    } catch (error) {
+      console.error(
+        "CivicPort AI analysis failed:",
+        error
+      );
+
+      window.alert(
+        error?.message ||
+          "Unable to complete the AI analysis."
+      );
+
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+
+  /*
+  * ============================================================
+  * CIVICPORT AI COPILOT — GENERATE BRIEF
+  * ============================================================
+  *
+  * This is deliberately separate from runAI().
+  *
+  * It calls:
+  *
+  * POST /api/ai/reports/:reference/brief
+  *
+  * The returned brief replaces the previous brief.
+  */
+
+  async function openAICopilot() {
+    try {
+      setAiBriefBusy(true);
+
+      setAiCopilotOpen(true);
+
+      const result =
+        await api.aiReportBrief(
+          report.reference
+        );
+
+      setAiBrief(
+        result?.brief || null
+      );
+
+    } catch (error) {
+      console.error(
+        "CivicPort AI Copilot failed:",
+        error
+      );
+
+      setAiCopilotOpen(false);
+
+      window.alert(
+        error?.message ||
+          "Unable to generate the AI operational brief."
+      );
+
+    } finally {
+      setAiBriefBusy(false);
+    }
+  }
+
+
+  /*
+  * ============================================================
+  * CIVICPORT AI COPILOT — RUN AGAIN
+  * ============================================================
+  *
+  * This uses the same endpoint as the initial Copilot
+  * generation and replaces the displayed brief.
+  */
+
+  async function runBriefAgain() {
+    try {
+      setAiBriefBusy(true);
+
+      const result =
+        await api.aiReportBrief(
+          report.reference
+        );
+
+      const latestBrief =
+        result?.brief || null;
+
+      if (!latestBrief) {
+        throw new Error(
+          "The AI returned an empty operational brief."
+        );
+      }
+
+      /*
+      * Replace the old brief with the newly
+      * generated one.
+      */
+      setAiBrief(latestBrief);
+
+      setAiCopilotOpen(true);
+
+    } catch (error) {
+      console.error(
+        "CivicPort AI Copilot regeneration failed:",
+        error
+      );
+
+      window.alert(
+        error?.message ||
+          "Unable to regenerate the AI operational brief."
+      );
+
+    } finally {
+      setAiBriefBusy(false);
+    }
+  }
 
   /*
    * ------------------------------------------------------------
@@ -4095,6 +4465,733 @@ function AdminModal({
               </div>
             )}
 
+          </div>
+
+
+          {/* ====================================================
+              CIVICPORT AI COPILOT
+          ==================================================== */}
+
+          <div
+            className="control-section"
+            style={{
+              borderColor:
+                "rgba(37, 99, 235, 0.18)",
+
+              background:
+                "linear-gradient(135deg, rgba(37,99,235,0.045), rgba(99,102,241,0.025))",
+            }}
+          >
+            {/* ==================================================
+                COPILOT HEADER
+            ================================================== */}
+
+            <h2>
+              <BrainCircuit size={17} />
+              CivicPort AI Copilot
+            </h2>
+
+            <p
+              style={{
+                margin: "0 0 14px",
+                color: "#64748b",
+                fontSize: "12px",
+                lineHeight: 1.55,
+              }}
+            >
+              AI reviews the report, available evidence,
+              report history and operational context to
+              support human decision-making.
+            </p>
+
+            <div
+              className="admin-note"
+              style={{
+                marginBottom: "12px",
+                borderColor:
+                  "rgba(37, 99, 235, 0.12)",
+              }}
+            >
+              <strong>
+                Human review required
+              </strong>
+
+              <p>
+                AI recommendations are advisory.
+                CivicPort does not automatically change
+                report status, reject reports, assign
+                departments or authorize enforcement.
+              </p>
+            </div>
+
+
+            {/* ==================================================
+                INITIAL AI ANALYSIS
+            ================================================== */}
+
+            {!aiAnalysis && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={runAI}
+                disabled={aiBusy}
+              >
+                <Sparkles size={16} />
+
+                {aiBusy
+                  ? "Analyzing with AI..."
+                  : "Analyze with AI"}
+              </button>
+            )}
+
+
+            {/* ==================================================
+                AI ANALYSIS COMPLETED
+            ================================================== */}
+
+            {aiAnalysis && (
+              <div
+                style={{
+                  display: "grid",
+                  gap: "10px",
+                }}
+              >
+                <div
+                  className="admin-note"
+                  style={{
+                    borderColor:
+                      "rgba(22, 163, 74, 0.20)",
+
+                    background:
+                      "rgba(22, 163, 74, 0.04)",
+                  }}
+                >
+                  <strong>
+                    ✓ AI Analysis completed
+                  </strong>
+
+                  <p>
+                    CivicPort has completed the initial
+                    AI assessment for this report.
+                    Review the assessment below before
+                    opening the operational Copilot.
+                  </p>
+                </div>
+
+
+                {/* ==================================================
+                    AI ASSESSMENT SUMMARY
+                ================================================== */}
+
+                <div
+                  className="admin-note"
+                >
+                  <strong>
+                    AI Assessment
+                  </strong>
+
+                  <p>
+                    {aiAnalysis.summary ||
+                      aiAnalysis.publicSummary ||
+                      "No summary was returned."}
+                  </p>
+                </div>
+
+
+                {/* ==================================================
+                    AI METRICS
+                ================================================== */}
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(2, minmax(0, 1fr))",
+                    gap: "8px",
+                  }}
+                >
+                  <div className="admin-note">
+                    <strong>
+                      Urgency
+                    </strong>
+
+                    <p>
+                      {Number(
+                        aiAnalysis.urgencyScore || 0
+                      )}
+                      /100
+                    </p>
+                  </div>
+
+
+                  <div className="admin-note">
+                    <strong>
+                      Impact Level
+                    </strong>
+
+                    <p>
+                      {aiAnalysis.impactLevel ||
+                        "Not available"}
+                    </p>
+                  </div>
+
+
+                  <div className="admin-note">
+                    <strong>
+                      Priority Recommendation
+                    </strong>
+
+                    <p>
+                      {aiAnalysis.priorityRecommendation ||
+                        "Not available"}
+                    </p>
+                  </div>
+
+
+                  <div className="admin-note">
+                    <strong>
+                      AI Confidence
+                    </strong>
+
+                    <p>
+                      {Math.round(
+                        Number(
+                          aiAnalysis.confidence || 0
+                        ) * 100
+                      )}
+                      %
+                    </p>
+                  </div>
+                </div>
+
+
+                {/* ==================================================
+                    AI ROUTING RECOMMENDATION
+                ================================================== */}
+
+                <div className="admin-note">
+                  <strong>
+                    Suggested Routing
+                  </strong>
+
+                  <p>
+                    <strong>
+                      Department:
+                    </strong>{" "}
+                    {aiAnalysis.recommendedDepartment ||
+                      "Not specified"}
+                  </p>
+
+                  <p>
+                    <strong>
+                      Unit:
+                    </strong>{" "}
+                    {aiAnalysis.recommendedUnit ||
+                      "Not specified"}
+                  </p>
+                </div>
+
+
+                {/* ==================================================
+                    ACTION PLAN
+                ================================================== */}
+
+                {Array.isArray(
+                  aiAnalysis.actionPlan
+                ) &&
+                  aiAnalysis.actionPlan.length > 0 && (
+                    <div className="admin-note">
+                      <strong>
+                        Suggested Action Plan
+                      </strong>
+
+                      <ul
+                        style={{
+                          margin:
+                            "7px 0 0",
+                          paddingLeft:
+                            "18px",
+                        }}
+                      >
+                        {aiAnalysis.actionPlan.map(
+                          (item, index) => (
+                            <li
+                              key={index}
+                              style={{
+                                marginBottom:
+                                  "5px",
+                              }}
+                            >
+                              {item}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+
+                {/* ==================================================
+                    SAFETY FLAGS
+                ================================================== */}
+
+                {Array.isArray(
+                  aiAnalysis.safetyFlags
+                ) &&
+                  aiAnalysis.safetyFlags.length > 0 && (
+                    <div
+                      className="admin-note"
+                      style={{
+                        borderColor:
+                          "rgba(220, 38, 38, 0.18)",
+                      }}
+                    >
+                      <strong>
+                        Safety Flags
+                      </strong>
+
+                      <ul
+                        style={{
+                          margin:
+                            "7px 0 0",
+                          paddingLeft:
+                            "18px",
+                        }}
+                      >
+                        {aiAnalysis.safetyFlags.map(
+                          (item, index) => (
+                            <li
+                              key={index}
+                              style={{
+                                marginBottom:
+                                  "5px",
+                              }}
+                            >
+                              {item}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+
+                {/* ==================================================
+                    POSSIBLE RELATED REPORTS
+                ================================================== */}
+
+                {Array.isArray(
+                  aiAnalysis.duplicateCandidates
+                ) &&
+                  aiAnalysis.duplicateCandidates.length >
+                    0 && (
+                    <div className="admin-note">
+                      <strong>
+                        Possible Related Reports
+                      </strong>
+
+                      <ul
+                        style={{
+                          margin:
+                            "7px 0 0",
+                          paddingLeft:
+                            "18px",
+                        }}
+                      >
+                        {aiAnalysis.duplicateCandidates.map(
+                          (item, index) => (
+                            <li
+                              key={index}
+                              style={{
+                                marginBottom:
+                                  "5px",
+                              }}
+                            >
+                              <strong>
+                                {item.reference}
+                              </strong>
+                              :{" "}
+                              {item.reason}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+
+                {/* ==================================================
+                    COPILOT BUTTON
+                ================================================== */}
+
+                {!aiCopilotOpen && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={openAICopilot}
+                    disabled={aiBriefBusy}
+                  >
+                    <BrainCircuit size={16} />
+
+                    {aiBriefBusy
+                      ? "Opening AI Copilot..."
+                      : "Open AI Copilot"}
+                  </button>
+                )}
+
+
+                {/* ==================================================
+                    RE-RUN INITIAL ANALYSIS
+                ================================================== */}
+
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={runAI}
+                  disabled={aiBusy}
+                >
+                  <RefreshCw
+                    size={15}
+                    className={
+                      aiBusy ? "spin" : ""
+                    }
+                  />
+
+                  {aiBusy
+                    ? "Analyzing..."
+                    : "Run Analysis Again"}
+                </button>
+              </div>
+            )}
+
+
+            {/* ==================================================
+                AI COPILOT LOADING
+            ================================================== */}
+
+            {aiCopilotOpen &&
+              aiBriefBusy &&
+              !aiBrief && (
+                <div
+                  className="admin-note"
+                  style={{
+                    marginTop: "12px",
+                    textAlign: "center",
+                    padding: "18px",
+                  }}
+                >
+                  <BrainCircuit
+                    size={22}
+                    style={{
+                      marginBottom: "7px",
+                    }}
+                  />
+
+                  <strong>
+                    CivicPort AI Copilot is preparing
+                    the operational brief...
+                  </strong>
+
+                  <p>
+                    Reviewing the report, timeline,
+                    evidence and operational context.
+                  </p>
+                </div>
+              )}
+
+
+            {/* ==================================================
+                FULL AI COPILOT BRIEF
+            ================================================== */}
+
+            {aiCopilotOpen &&
+              aiBrief && (
+                <div
+                  style={{
+                    marginTop: "14px",
+                    display: "grid",
+                    gap: "10px",
+                  }}
+                >
+                  {/* COPILOT HEADER */}
+
+                  <div
+                    className="admin-note"
+                    style={{
+                      borderColor:
+                        "rgba(37, 99, 235, 0.20)",
+
+                      background:
+                        "rgba(37, 99, 235, 0.04)",
+                    }}
+                  >
+                    <strong>
+                      <BrainCircuit
+                        size={15}
+                        style={{
+                          verticalAlign:
+                            "middle",
+                          marginRight:
+                            "5px",
+                        }}
+                      />
+
+                      CivicPort AI Copilot
+                    </strong>
+
+                    <p>
+                      Operational brief for human review.
+                    </p>
+                  </div>
+
+
+                  {/* ==================================================
+                      EXECUTIVE SUMMARY
+                  ================================================== */}
+
+                  <div className="admin-note">
+                    <strong>
+                      Executive Summary
+                    </strong>
+
+                    <p>
+                      {aiBrief.executiveSummary ||
+                        "No executive summary available."}
+                    </p>
+                  </div>
+
+
+                  {/* ==================================================
+                      CURRENT ASSESSMENT
+                  ================================================== */}
+
+                  <div className="admin-note">
+                    <strong>
+                      Current Assessment
+                    </strong>
+
+                    <p>
+                      {aiBrief.currentAssessment ||
+                        "No current assessment available."}
+                    </p>
+                  </div>
+
+
+                  {/* ==================================================
+                      RECOMMENDED NEXT ACTION
+                  ================================================== */}
+
+                  <div className="admin-note">
+                    <strong>
+                      Recommended Next Action
+                    </strong>
+
+                    <p>
+                      {aiBrief.recommendedNextAction ||
+                        "No next action was provided."}
+                    </p>
+                  </div>
+
+
+                  {/* ==================================================
+                      ROUTING ADVICE
+                  ================================================== */}
+
+                  <div className="admin-note">
+                    <strong>
+                      Routing Advice
+                    </strong>
+
+                    <p>
+                      {aiBrief.routingAdvice ||
+                        "No routing advice was provided."}
+                    </p>
+                  </div>
+
+
+                  {/* ==================================================
+                      RISK FACTORS
+                  ================================================== */}
+
+                  {Array.isArray(
+                    aiBrief.riskFactors
+                  ) &&
+                    aiBrief.riskFactors.length > 0 && (
+                      <div className="admin-note">
+                        <strong>
+                          Risk Factors
+                        </strong>
+
+                        <ul
+                          style={{
+                            margin:
+                              "7px 0 0",
+                            paddingLeft:
+                              "18px",
+                          }}
+                        >
+                          {aiBrief.riskFactors.map(
+                            (item, index) => (
+                              <li
+                                key={index}
+                                style={{
+                                  marginBottom:
+                                    "5px",
+                                }}
+                              >
+                                {item}
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+
+                  {/* ==================================================
+                      VERIFICATION QUESTIONS
+                  ================================================== */}
+
+                  {Array.isArray(
+                    aiBrief.verificationQuestions
+                  ) &&
+                    aiBrief.verificationQuestions.length >
+                      0 && (
+                      <div className="admin-note">
+                        <strong>
+                          Verification Questions
+                        </strong>
+
+                        <ul
+                          style={{
+                            margin:
+                              "7px 0 0",
+                            paddingLeft:
+                              "18px",
+                          }}
+                        >
+                          {aiBrief.verificationQuestions.map(
+                            (item, index) => (
+                              <li
+                                key={index}
+                                style={{
+                                  marginBottom:
+                                    "5px",
+                                }}
+                              >
+                                {item}
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+
+                  {/* ==================================================
+                      PUBLIC UPDATE DRAFT
+                  ================================================== */}
+
+                  <div
+                    className="admin-note"
+                    style={{
+                      borderColor:
+                        "rgba(22, 163, 74, 0.18)",
+                    }}
+                  >
+                    <strong>
+                      Public Update Draft
+                    </strong>
+
+                    <p>
+                      {aiBrief.publicUpdateDraft ||
+                        "No public update draft was provided."}
+                    </p>
+                  </div>
+
+
+                  {/* ==================================================
+                      ESCALATION REASON
+                  ================================================== */}
+
+                  <div className="admin-note">
+                    <strong>
+                      Escalation Reason
+                    </strong>
+
+                    <p>
+                      {aiBrief.escalationReason ||
+                        "No escalation reason was identified."}
+                    </p>
+                  </div>
+
+
+                  {/* ==================================================
+                      CONFIDENCE
+                  ================================================== */}
+
+                  <div className="admin-note">
+                    <strong>
+                      AI Confidence
+                    </strong>
+
+                    <p>
+                      {Math.round(
+                        Number(
+                          aiBrief.confidence || 0
+                        ) * 100
+                      )}
+                      %
+                    </p>
+                  </div>
+
+
+                  {/* ==================================================
+                      COPILOT ACTIONS
+                  ================================================== */}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      flexWrap: "wrap",
+                      marginTop: "2px",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={runBriefAgain}
+                      disabled={aiBriefBusy}
+                    >
+                      <RefreshCw
+                        size={15}
+                        className={
+                          aiBriefBusy
+                            ? "spin"
+                            : ""
+                        }
+                      />
+
+                      {aiBriefBusy
+                        ? "Generating..."
+                        : "Run Brief Again"}
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() =>
+                        setAiCopilotOpen(false)
+                      }
+                      disabled={aiBriefBusy}
+                    >
+                      Close Copilot
+                    </button>
+                  </div>
+                </div>
+              )}
           </div>
 
 

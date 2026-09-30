@@ -7,6 +7,12 @@ import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import { v2 as cloudinary } from "cloudinary";
 import { PrismaClient } from "@prisma/client";
+import {
+  analyzeReport,
+  generateOperationsBrief,
+  generateReportBrief,
+  isAIConfigured,
+} from "./services/ai.js";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -569,6 +575,105 @@ function hasCompleteRouting({
   );
 }
 
+
+/* =========================================================
+   AI CIVIC INTELLIGENCE
+========================================================= */
+
+async function getAIComparisonReports(report) {
+  return prisma.report.findMany({
+    where: {
+      id: {
+        not: report.id,
+      },
+      ...(report.category
+        ? { category: report.category }
+        : {}),
+    },
+    select: {
+      reference: true,
+      title: true,
+      category: true,
+      status: true,
+      locationLabel: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 20,
+  });
+}
+
+async function runReportAIAnalysis(report) {
+  if (!isAIConfigured()) {
+    console.warn(
+      "AI analysis skipped: GROQ_API_KEY is not configured."
+    );
+
+    return null;
+  }
+
+  const candidates =
+    await getAIComparisonReports(report);
+
+  const analysis =
+    await analyzeReport(
+      report,
+      candidates
+    );
+
+  /*
+   * ==========================================================
+   * STORE AI ANALYSIS
+   * ==========================================================
+   *
+   * The AI result is advisory only.
+   *
+   * CivicPort does NOT:
+   *
+   * - change status
+   * - reject reports
+   * - assign departments
+   * - authorize enforcement
+   *
+   * automatically.
+   */
+
+  const storedAnalysis = {
+    ...analysis,
+
+    _meta: {
+      ...(analysis?._meta || {}),
+
+      model:
+        process.env.GROQ_MODEL_NAME ||
+        "openai/gpt-oss-120b",
+
+      generatedAt:
+        new Date().toISOString(),
+
+      humanReviewRequired:
+        true,
+    },
+  };
+
+  await prisma.report.update({
+    where: {
+      id: report.id,
+    },
+
+    data: {
+      aiAnalysis:
+        storedAnalysis,
+
+      aiAnalyzedAt:
+        new Date(),
+    },
+  });
+
+  return storedAnalysis;
+}
+
 /* =========================================================
    RESPONSE NORMALIZATION
 ========================================================= */
@@ -588,8 +693,14 @@ function normalizeReport(report) {
     return report;
   }
 
+  const {
+    aiAnalysis: _aiAnalysis,
+    aiAnalyzedAt: _aiAnalyzedAt,
+    ...safeReport
+  } = report;
+
   return {
-    ...report,
+    ...safeReport,
 
     photoUrl:
       report.photoUrl || null,
@@ -1384,6 +1495,17 @@ app.post(
       res.status(201).json(
         normalizeReport(report)
       );
+
+      // AI triage is deliberately non-blocking so an AI outage
+      // can never prevent a citizen from submitting a report.
+      runReportAIAnalysis(report).catch(
+        (aiError) => {
+          console.error(
+            `Background AI analysis failed for ${reference}:`,
+            aiError
+          );
+        }
+      );
     } catch (error) {
       console.error(
         "Failed to create report:",
@@ -2129,6 +2251,209 @@ app.post(
         error:
           error.message ||
           "Failed to add report update.",
+      });
+    }
+  }
+);
+
+
+/* =========================================================
+   AI STATUS
+========================================================= */
+
+app.get(
+  "/api/ai/status",
+  requireGovernmentAuth,
+  (_req, res) => {
+    res.json({
+      configured: isAIConfigured(),
+      model:
+        process.env.GROQ_MODEL_NAME ||
+        "openai/gpt-oss-120b",
+      capabilities: [
+        "Report triage",
+        "Evidence image analysis",
+        "Evidence-aware analysis",
+        "Duplicate signal detection",
+        "Operational briefs",
+        "Operations intelligence",
+      ],
+    });
+  }
+);
+
+/* =========================================================
+   AI REPORT ANALYSIS
+   Human-in-the-loop: recommendations are stored for review
+   and never change report workflow automatically.
+========================================================= */
+
+app.post(
+  "/api/ai/reports/:reference/analyze",
+  requireGovernmentAuth,
+  async (req, res) => {
+    try {
+      if (!isAIConfigured()) {
+        return res.status(503).json({
+          error:
+            "AI is not configured. Add GROQ_API_KEY to the server environment.",
+        });
+      }
+
+      const report =
+        await prisma.report.findUnique({
+          where: {
+            reference:
+              req.params.reference,
+          },
+          include: {
+            updates: {
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+          },
+        });
+
+      if (!report) {
+        return res.status(404).json({
+          error: "Report not found.",
+        });
+      }
+
+      const analysis =
+        await runReportAIAnalysis(report);
+
+      res.json({
+        reference:
+          report.reference,
+        analyzedAt:
+          new Date().toISOString(),
+        analysis,
+      });
+    } catch (error) {
+      console.error(
+        "AI report analysis failed:",
+        error
+      );
+
+      res.status(502).json({
+        error:
+          error.message ||
+          "AI analysis failed.",
+      });
+    }
+  }
+);
+
+/* =========================================================
+   AI OPERATIONS BRIEF FOR A REPORT
+========================================================= */
+
+app.post(
+  "/api/ai/reports/:reference/brief",
+  requireGovernmentAuth,
+  async (req, res) => {
+    try {
+      if (!isAIConfigured()) {
+        return res.status(503).json({
+          error:
+            "AI is not configured. Add GROQ_API_KEY to the server environment.",
+        });
+      }
+
+      const report =
+        await prisma.report.findUnique({
+          where: {
+            reference:
+              req.params.reference,
+          },
+          include: {
+            updates: {
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+          },
+        });
+
+      if (!report) {
+        return res.status(404).json({
+          error: "Report not found.",
+        });
+      }
+
+      const brief =
+        await generateReportBrief(
+          report
+        );
+
+      res.json({
+        reference:
+          report.reference,
+        brief,
+      });
+    } catch (error) {
+      console.error(
+        "AI report brief failed:",
+        error
+      );
+
+      res.status(502).json({
+        error:
+          error.message ||
+          "AI operations brief failed.",
+      });
+    }
+  }
+);
+
+/* =========================================================
+   AI OPERATIONS INTELLIGENCE
+========================================================= */
+
+app.post(
+  "/api/ai/operations",
+  requireGovernmentAuth,
+  async (_req, res) => {
+    try {
+      if (!isAIConfigured()) {
+        return res.status(503).json({
+          error:
+            "AI is not configured. Add GROQ_API_KEY to the server environment.",
+        });
+      }
+
+      const reports =
+        await prisma.report.findMany({
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 100,
+        });
+
+      const brief =
+        await generateOperationsBrief(
+          reports
+        );
+
+      res.json({
+        generatedAt:
+          new Date().toISOString(),
+        reportCount:
+          reports.length,
+        brief,
+      });
+    } catch (error) {
+      console.error(
+        "AI operations intelligence failed:",
+        error
+      );
+
+      res.status(502).json({
+        error:
+          error.message ||
+          "AI operations intelligence failed.",
       });
     }
   }

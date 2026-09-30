@@ -24,6 +24,8 @@ model Report {
   assignedUnit   String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+  aiAnalysis     Json?
+  aiAnalyzedAt   DateTime?
   updates        ReportUpdate[]
 }
 

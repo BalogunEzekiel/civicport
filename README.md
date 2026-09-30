@@ -152,3 +152,54 @@ civicport/
 ├── package.json
 └── README.md
 ```
+
+
+## CivicPort AI Intelligence
+
+CivicPort now includes an optional server-side AI decision-support layer.
+
+### Capabilities
+
+- **Automatic report triage:** newly submitted reports are analyzed in the background without blocking citizen submission.
+- **Evidence-aware analysis:** the AI can analyze the report description and submitted Cloudinary evidence image.
+- **Urgency and priority recommendations:** the AI provides an urgency score and suggested priority for government review.
+- **Routing recommendations:** the AI suggests a relevant department and operational unit when supported by the evidence.
+- **Related-report signals:** recent reports in the same category are supplied to the model so it can identify possible related cases.
+- **Government Operations Copilot:** authenticated administrators can generate a report-specific operational brief.
+- **Operations Intelligence:** the Analytics page can generate an AI summary of current civic workload, recurring patterns, resource signals and recommended actions.
+
+### Human-in-the-loop design
+
+AI recommendations are advisory. CivicPort does **not** allow the AI to autonomously reject reports, change workflow status, assign departments, or take enforcement action. Government administrators remain responsible for operational decisions.
+
+### Configuration
+
+Set these variables on the **server only**:
+
+```env
+GROQ_API_KEY="your-server-side-key"
+GROQ_BASE_URL="https://api.groq.com/openai/v1"
+GROQ_MODEL_NAME="openai/gpt-oss-120b"
+GROQ_VISION_MODEL="qwen/qwen3.8-27b"
+```
+
+The API key must never be placed in `client/.env`, `VITE_*` variables, browser code, or committed to Git.
+
+### Database update
+
+The AI layer adds two nullable fields to `Report`:
+
+- `aiAnalysis`
+- `aiAnalyzedAt`
+
+After pulling this version locally, run:
+
+```powershell
+cd server
+npx prisma generate
+npx prisma db push
+```
+
+Then configure the same AI environment variables in the Render API service and redeploy.
+
+If `GROQ_API_KEY` is not configured, CivicPort continues to operate normally as a non-AI civic reporting platform.

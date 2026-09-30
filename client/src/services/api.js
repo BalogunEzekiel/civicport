@@ -121,6 +121,30 @@ export const api = {
       body: formData,
     }),
 
+
+
+  /* =====================================================
+     AI CIVIC INTELLIGENCE
+  ===================================================== */
+
+  aiStatus: () =>
+    request("/ai/status"),
+
+  aiAnalyzeReport: (reference) =>
+    request(`/ai/reports/${reference}/analyze`, {
+      method: "POST",
+    }),
+
+  aiReportBrief: (reference) =>
+    request(`/ai/reports/${reference}/brief`, {
+      method: "POST",
+    }),
+
+  aiOperations: () =>
+    request("/ai/operations", {
+      method: "POST",
+    }),
+
   /* =====================================================
     GOVERNMENT AUTHENTICATION
   ===================================================== */
