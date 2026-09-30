@@ -42,7 +42,51 @@ const userLocationIcon = L.divIcon({
   iconAnchor: [16, 16]
 });
 
-const categories = ["All", "Roads", "Streetlights", "Waste", "Flooding", "Water", "Public Facilities"];
+const categories = [
+  "All",
+  "Roads",
+  "Streetlights",
+  "Waste",
+  "Flooding",
+  "Water",
+  "Public Facilities"
+];
+
+const LOCATION_MAX_ACCURACY = 100;
+
+const LOCATION_FIELDS = [
+  {
+    key: "streetName",
+    label: "Street name",
+    placeholder: "Enter the street or road name"
+  },
+  {
+    key: "neighbourhood",
+    label: "Neighbourhood",
+    placeholder: "Enter your neighbourhood"
+  },
+  {
+    key: "city",
+    label: "City",
+    placeholder: "Enter your city"
+  },
+  {
+    key: "state",
+    label: "State",
+    placeholder: "Enter your state"
+  },
+  {
+    key: "country",
+    label: "Country",
+    placeholder: "Enter your country"
+  }
+];
+
+function getMissingLocationFields(form) {
+  return LOCATION_FIELDS
+    .map(field => field.key)
+    .filter(field => !String(form[field] || "").trim());
+}
 
 export default function PublicDashboard() {
   const [stats, setStats] = useState(null);
@@ -55,16 +99,35 @@ export default function PublicDashboard() {
   const [showMap, setShowMap] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const [pagination, setPagination] = useState({ page: 1, pageSize, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize,
+    total: 0,
+    totalPages: 1
+  });
 
   async function load(nextPage = page) {
     const [s, r] = await Promise.all([
       api.stats(),
-      api.reports({ q: query, category, status, page: nextPage, pageSize }),
+      api.reports({
+        q: query,
+        category,
+        status,
+        page: nextPage,
+        pageSize
+      })
     ]);
+
     setStats(s);
     setReports(Array.isArray(r?.items) ? r.items : []);
-    setPagination(r?.pagination || { page: nextPage, pageSize, total: r?.items?.length || 0, totalPages: 1 });
+    setPagination(
+      r?.pagination || {
+        page: nextPage,
+        pageSize,
+        total: r?.items?.length || 0,
+        totalPages: 1
+      }
+    );
   }
 
   useEffect(() => {
@@ -123,7 +186,6 @@ export default function PublicDashboard() {
             <span>Government Portal</span>
           </a>
           */}
-          
         </nav>
 
         <button
@@ -138,19 +200,61 @@ export default function PublicDashboard() {
       <main>
         <section className="hero">
           <div className="hero-copy">
-            <div className="eyebrow"><span></span> AI-POWERED CIVIC INTELLIGENCE</div>
-            <h1>From community voice to <em>intelligent civic action.</em></h1>
-            <p>Report civic issues with evidence and location, then follow a transparent lifecycle from submission to resolution — powered by AI-assisted triage, operational intelligence and human-led decisions.</p>
-            <div className="hero-ai-badge"><Bot size={15}/> AI-powered civic intelligence · Human oversight by design</div>
+            <div className="eyebrow">
+              <span></span> AI-POWERED CIVIC INTELLIGENCE
+            </div>
+
+            <h1>
+              From community voice to <em>intelligent civic action.</em>
+            </h1>
+
+            <p>
+              Report civic issues with evidence and location, then follow a
+              transparent lifecycle from submission to resolution — powered by
+              AI-assisted triage, operational intelligence and human-led
+              decisions.
+            </p>
+
+            <div className="hero-ai-badge">
+              <Bot size={15} />
+              AI-powered civic intelligence · Human oversight by design
+            </div>
+
             <div className="hero-actions">
-              <button className="btn btn-primary btn-large" onClick={() => setShowReport(true)}>Report An Issue <ArrowRight size={18}/></button>
-              <button className="btn btn-ghost btn-large" onClick={() => document.getElementById("issues")?.scrollIntoView({ behavior: "smooth" })}>Explore reports</button>
+              <button
+                className="btn btn-primary btn-large"
+                onClick={() => setShowReport(true)}
+              >
+                Report An Issue <ArrowRight size={18} />
+              </button>
+
+              <button
+                className="btn btn-ghost btn-large"
+                onClick={() =>
+                  document
+                    .getElementById("issues")
+                    ?.scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                Explore reports
+              </button>
             </div>
           </div>
+
           <div className="hero-panel">
-            <div className="panel-top"><span>LIVE COMMUNITY PULSE</span><span className="live"><i/> LIVE</span></div>
-            <div className="pulse-number">{stats?.total ?? "—"}</div>
+            <div className="panel-top">
+              <span>LIVE COMMUNITY PULSE</span>
+              <span className="live">
+                <i /> LIVE
+              </span>
+            </div>
+
+            <div className="pulse-number">
+              {stats?.total ?? "—"}
+            </div>
+
             <p>civic reports submitted</p>
+
             <div className="pulse-grid">
               <div>
                 <strong>{stats?.open ?? "—"}</strong>
@@ -177,81 +281,382 @@ export default function PublicDashboard() {
 
         <section className="ai-innovation-section">
           <div className="ai-innovation-glow" />
+
           <div>
-            <div className="eyebrow"><span></span> THE CIVICPORT AI DIFFERENCE</div>
-            <h2>Intelligence that helps communities move from <em>reporting</em> to <em>response.</em></h2>
-            <p>CivicPort combines evidence-aware AI, lifecycle intelligence and transparent workflows to help civic teams understand what is happening, focus attention where it matters, coordinate action and communicate progress — while keeping consequential decisions in human hands.</p>
+            <div className="eyebrow">
+              <span></span> THE CIVICPORT AI DIFFERENCE
+            </div>
+
+            <h2>
+              Intelligence that helps communities move from{" "}
+              <em>reporting</em> to <em>response.</em>
+            </h2>
+
+            <p>
+              CivicPort combines evidence-aware AI, lifecycle intelligence and
+              transparent workflows to help civic teams understand what is
+              happening, focus attention where it matters, coordinate action
+              and communicate progress — while keeping consequential decisions
+              in human hands.
+            </p>
           </div>
+
           <div className="ai-capability-grid">
-            <div><Bot/><strong>AI Triage</strong><span>Turns incoming reports into structured, actionable intelligence.</span></div>
-            <div><Activity/><strong>Lifecycle Intelligence</strong><span>Understands where every issue is in its journey and what comes next.</span></div>
-            <div><ShieldCheck/><strong>Human Governance</strong><span>AI advises; authorized people make consequential decisions.</span></div>
-            <div><TrendingUp/><strong>Operations Insight</strong><span>Surfaces patterns, workload signals and evidence for better coordination.</span></div>
+            <div>
+              <Bot />
+              <strong>AI Triage</strong>
+              <span>
+                Turns incoming reports into structured, actionable
+                intelligence.
+              </span>
+            </div>
+
+            <div>
+              <Activity />
+              <strong>Lifecycle Intelligence</strong>
+              <span>
+                Understands where every issue is in its journey and what comes
+                next.
+              </span>
+            </div>
+
+            <div>
+              <ShieldCheck />
+              <strong>Human Governance</strong>
+              <span>
+                AI advises; authorized people make consequential decisions.
+              </span>
+            </div>
+
+            <div>
+              <TrendingUp />
+              <strong>Operations Insight</strong>
+              <span>
+                Surfaces patterns, workload signals and evidence for better
+                coordination.
+              </span>
+            </div>
           </div>
         </section>
 
         <section className="impact-strip">
-          <div><ShieldCheck/><div><strong>Evidence-first</strong><span>Photo + location for every report</span></div></div>
-          <div><Activity/><div><strong>Trackable</strong><span>Every status change is recorded</span></div></div>
-          <div><CheckCircle2/><div><strong>Accountable</strong><span>Public updates show what happened</span></div></div>
+          <div>
+            <ShieldCheck />
+            <div>
+              <strong>Evidence-first</strong>
+              <span>Photo + location for every report</span>
+            </div>
+          </div>
+
+          <div>
+            <Activity />
+            <div>
+              <strong>Trackable</strong>
+              <span>Every status change is recorded</span>
+            </div>
+          </div>
+
+          <div>
+            <CheckCircle2 />
+            <div>
+              <strong>Accountable</strong>
+              <span>Public updates show what happened</span>
+            </div>
+          </div>
         </section>
 
         <section id="issues" className="content-section">
           <div className="section-heading">
-            <div><div className="eyebrow">COMMUNITY REPORTS</div><h2>See what needs attention.</h2></div>
-            <button className="btn btn-outline" onClick={() => setShowMap(!showMap)}><Map size={17}/> {showMap ? "List view" : "Map view"}</button>
+            <div>
+              <div className="eyebrow">COMMUNITY REPORTS</div>
+              <h2>See what needs attention.</h2>
+            </div>
+
+            <button
+              className="btn btn-outline"
+              onClick={() => setShowMap(!showMap)}
+            >
+              <Map size={17} />
+              {showMap ? "List view" : "Map view"}
+            </button>
           </div>
+
           <div className="filters">
-            <label className="search"><Search size={17}/><input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && load()} placeholder="Search reports, locations or reference..." /></label>
-            <select value={category} onChange={e => setCategory(e.target.value)}>{categories.map(c => <option key={c}>{c}</option>)}</select>
-            <select value={status} onChange={e => setStatus(e.target.value)}>{["All","Submitted","Under Review","Assigned","In Progress","Resolved","Rejected"].map(s => <option key={s}>{s}</option>)}</select>
-            <button className="btn btn-outline filter-button"><Filter size={16}/> Filters</button>
+            <label className="search">
+              <Search size={17} />
+
+              <input
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onKeyDown={e =>
+                  e.key === "Enter" && load()
+                }
+                placeholder="Search reports, locations or reference..."
+              />
+            </label>
+
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+            >
+              {categories.map(c => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+
+            <select
+              value={status}
+              onChange={e => setStatus(e.target.value)}
+            >
+              {[
+                "All",
+                "Submitted",
+                "Under Review",
+                "Assigned",
+                "In Progress",
+                "Resolved",
+                "Rejected"
+              ].map(s => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+
+            <button className="btn btn-outline filter-button">
+              <Filter size={16} />
+              Filters
+            </button>
           </div>
-          {showMap ? <IssueMap reports={filtered} onOpen={openReport}/> :
-            <div className="report-grid">{filtered.map(r => <ReportCard key={r.reference} report={r} onOpen={openReport}/>)}</div>}
-          {!filtered.length && <div className="empty">No reports match your filters.</div>}
+
+          {showMap ? (
+            <IssueMap
+              reports={filtered}
+              onOpen={openReport}
+            />
+          ) : (
+            <div className="report-grid">
+              {filtered.map(r => (
+                <ReportCard
+                  key={r.reference}
+                  report={r}
+                  onOpen={openReport}
+                />
+              ))}
+            </div>
+          )}
+
+          {!filtered.length && (
+            <div className="empty">
+              No reports match your filters.
+            </div>
+          )}
+
           {!showMap && pagination.total > 0 && (
-            <Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total} pageSize={pagination.pageSize} onChange={(next) => { setPage(next); load(next); window.scrollTo({ top: document.getElementById("issues")?.offsetTop || 0, behavior: "smooth" }); }} />
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              pageSize={pagination.pageSize}
+              onChange={next => {
+                setPage(next);
+                load(next);
+
+                window.scrollTo({
+                  top:
+                    document.getElementById("issues")?.offsetTop || 0,
+                  behavior: "smooth"
+                });
+              }}
+            />
           )}
         </section>
       </main>
 
-      <footer><Logo/><span>© 2026 CivicPort · Report. Track. Resolve.</span></footer>
+      <footer>
+        <Logo />
+        <span>© 2026 CivicPort · Report. Track. Resolve.</span>
+      </footer>
 
-      {showReport && <ReportForm onClose={() => setShowReport(false)} onCreated={async r => { setShowReport(false); await load(); setSelected(r); }}/>}
-      {selected && <Modal wide onClose={() => setSelected(null)}>
-        <div className="modal-header"><div><div className="report-ref">{selected.reference}</div><h2>{selected.title}</h2><p>{selected.locationLabel}</p></div><StatusBadge status={selected.status}/></div>
-        {selected.photoUrl && <img className="detail-photo" src={selected.photoUrl} alt={selected.title}/>}
-        <p className="detail-description">{selected.description}</p>
-        <div className="detail-grid"><div><span>Category</span><strong>{selected.category}</strong></div><div><span>Priority</span><strong>{selected.priority}</strong></div><div><span>Department</span><strong>{selected.department || "Pending assignment"}</strong></div></div>
-        <h3 className="subheading">Progress</h3>
-        <Timeline report={selected}/>
-        <div className="updates">
-          {(selected.updates || []).filter(u => u.isPublic).map(u => u.photoUrl ? <img key={u.id} src={u.photoUrl} className="update-photo" alt="Progress update"/> : null)}
-        </div>
-      </Modal>}
+      {showReport && (
+        <ReportForm
+          onClose={() => setShowReport(false)}
+          onCreated={async r => {
+            setShowReport(false);
+            await load();
+            setSelected(r);
+          }}
+        />
+      )}
+
+      {selected && (
+        <Modal
+          wide
+          onClose={() => setSelected(null)}
+        >
+          <div className="modal-header">
+            <div>
+              <div className="report-ref">
+                {selected.reference}
+              </div>
+
+              <h2>{selected.title}</h2>
+              <p>{selected.locationLabel}</p>
+            </div>
+
+            <StatusBadge status={selected.status} />
+          </div>
+
+          {selected.photoUrl && (
+            <img
+              className="detail-photo"
+              src={selected.photoUrl}
+              alt={selected.title}
+            />
+          )}
+
+          <p className="detail-description">
+            {selected.description}
+          </p>
+
+          <div className="detail-grid">
+            <div>
+              <span>Category</span>
+              <strong>{selected.category}</strong>
+            </div>
+
+            <div>
+              <span>Priority</span>
+              <strong>{selected.priority}</strong>
+            </div>
+
+            <div>
+              <span>Department</span>
+              <strong>
+                {selected.department || "Pending assignment"}
+              </strong>
+            </div>
+          </div>
+
+          <h3 className="subheading">Progress</h3>
+
+          <Timeline report={selected} />
+
+          <div className="updates">
+            {(selected.updates || [])
+              .filter(u => u.isPublic)
+              .map(u =>
+                u.photoUrl ? (
+                  <img
+                    key={u.id}
+                    src={u.photoUrl}
+                    className="update-photo"
+                    alt="Progress update"
+                  />
+                ) : null
+              )}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
 
-function Pagination({ page, totalPages, total, pageSize, onChange }) {
+function Pagination({
+  page,
+  totalPages,
+  total,
+  pageSize,
+  onChange
+}) {
   if (!total || totalPages <= 1) return null;
+
   const pages = [];
-  const add = (n) => { if (n >= 1 && n <= totalPages && !pages.includes(n)) pages.push(n); };
+
+  const add = n => {
+    if (
+      n >= 1 &&
+      n <= totalPages &&
+      !pages.includes(n)
+    ) {
+      pages.push(n);
+    }
+  };
+
   add(1);
-  for (let n = Math.max(2, page - 1); n <= Math.min(totalPages - 1, page + 1); n += 1) add(n);
+
+  for (
+    let n = Math.max(2, page - 1);
+    n <= Math.min(totalPages - 1, page + 1);
+    n += 1
+  ) {
+    add(n);
+  }
+
   add(totalPages);
+
   const visible = [];
-  pages.forEach((n, i) => { if (i > 0 && n - pages[i - 1] > 1) visible.push("ellipsis-" + n); visible.push(n); });
+
+  pages.forEach((n, i) => {
+    if (
+      i > 0 &&
+      n - pages[i - 1] > 1
+    ) {
+      visible.push("ellipsis-" + n);
+    }
+
+    visible.push(n);
+  });
+
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
+
   return (
-    <div className="pagination" aria-label="Reports pagination">
-      <span className="pagination-summary">{start}-{end} of {total}</span>
+    <div
+      className="pagination"
+      aria-label="Reports pagination"
+    >
+      <span className="pagination-summary">
+        {start}-{end} of {total}
+      </span>
+
       <div className="pagination-controls">
-        <button className="pagination-arrow" disabled={page === 1} onClick={() => onChange(page - 1)} aria-label="Previous page">‹</button>
-        {visible.map((item) => item.startsWith("ellipsis") ? <span key={item} className="pagination-ellipsis">…</span> : <button key={item} className={item === page ? "active" : ""} onClick={() => onChange(item)}>{item}</button>)}
-        <button className="pagination-arrow" disabled={page === totalPages} onClick={() => onChange(page + 1)} aria-label="Next page">›</button>
+        <button
+          className="pagination-arrow"
+          disabled={page === 1}
+          onClick={() => onChange(page - 1)}
+          aria-label="Previous page"
+        >
+          ‹
+        </button>
+
+        {visible.map(item =>
+          item.startsWith("ellipsis") ? (
+            <span
+              key={item}
+              className="pagination-ellipsis"
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={item}
+              className={
+                item === page ? "active" : ""
+              }
+              onClick={() => onChange(item)}
+            >
+              {item}
+            </button>
+          )
+        )}
+
+        <button
+          className="pagination-arrow"
+          disabled={page === totalPages}
+          onClick={() => onChange(page + 1)}
+          aria-label="Next page"
+        >
+          ›
+        </button>
       </div>
     </div>
   );
@@ -266,7 +671,10 @@ function LocationPicker({
   const lat = Number(latitude);
   const lng = Number(longitude);
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng)
+  ) {
     return null;
   }
 
@@ -283,7 +691,7 @@ function LocationPicker({
         }}
       >
         <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
+          attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
@@ -297,8 +705,10 @@ function LocationPicker({
             {locationLabel || "Location detected"}
             <br />
             <small>
-              {accuracy
-                ? `GPS accuracy: ±${Math.round(Number(accuracy))}m`
+              {Number.isFinite(Number(accuracy))
+                ? `GPS accuracy: ±${Math.round(
+                    Number(accuracy)
+                  )}m`
                 : "GPS accuracy unavailable"}
             </small>
           </Popup>
@@ -308,7 +718,10 @@ function LocationPicker({
   );
 }
 
-function ReportForm({ onClose, onCreated }) {
+function ReportForm({
+  onClose,
+  onCreated
+}) {
   const [form, setForm] = useState({
     title: "",
     category: "",
@@ -317,25 +730,24 @@ function ReportForm({ onClose, onCreated }) {
     longitude: "",
     accuracy: "",
     locationLabel: "",
-    streetAddress: "",
     streetName: "",
     neighbourhood: "",
     city: "",
     state: "",
     country: "",
     locationVerified: false,
-    locationConfirmed: false
+    locationSource: ""
   });
 
   const [photo, setPhoto] = useState(null);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [locationResolved, setLocationResolved] = useState(false);
+  const [locationAttempted, setLocationAttempted] = useState(false);
   const [locationMessage, setLocationMessage] = useState(
     "Your precise device location is required."
   );
-
-  const LOCATION_MAX_ACCURACY = 100;
+  const [error, setError] = useState("");
 
   function resetLocation() {
     setForm(previous => ({
@@ -344,22 +756,27 @@ function ReportForm({ onClose, onCreated }) {
       longitude: "",
       accuracy: "",
       locationLabel: "",
-      streetAddress: "",
       streetName: "",
       neighbourhood: "",
       city: "",
       state: "",
       country: "",
       locationVerified: false,
-      locationConfirmed: false
+      locationSource: ""
     }));
+
+    setLocationResolved(false);
 
     setLocationMessage(
       "Your precise device location is required."
     );
   }
 
-  async function verifyLocation(latitude, longitude, accuracy) {
+  async function verifyLocation(
+    latitude,
+    longitude,
+    accuracy
+  ) {
     const apiBase =
       `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api`;
 
@@ -367,9 +784,20 @@ function ReportForm({ onClose, onCreated }) {
       `${apiBase}/geocode/reverse`
     );
 
-    url.searchParams.set("lat", String(latitude));
-    url.searchParams.set("lon", String(longitude));
-    url.searchParams.set("accuracy", String(accuracy));
+    url.searchParams.set(
+      "lat",
+      String(latitude)
+    );
+
+    url.searchParams.set(
+      "lon",
+      String(longitude)
+    );
+
+    url.searchParams.set(
+      "accuracy",
+      String(accuracy)
+    );
 
     const response = await fetch(
       url.toString(),
@@ -379,6 +807,7 @@ function ReportForm({ onClose, onCreated }) {
     );
 
     const text = await response.text();
+
     let data = {};
 
     try {
@@ -387,14 +816,31 @@ function ReportForm({ onClose, onCreated }) {
       data = {};
     }
 
-    if (!response.ok || !data.verified) {
+    /*
+     * A successful reverse-geocoding request can still be partial.
+     * The server returns missingFields when one or more required
+     * human-readable location fields could not be resolved.
+     */
+    if (!response.ok) {
       throw new Error(
         data.error ||
-        "CivicPort could not verify the street for this location."
+        "CivicPort could not verify this location right now."
       );
     }
 
     return data;
+  }
+
+  function updateLocationField(field, value) {
+    setForm(previous => ({
+      ...previous,
+      [field]: value,
+      locationVerified: false
+    }));
+
+    setLocationMessage(
+      "Location details were edited. CivicPort must verify the completed location before submission."
+    );
   }
 
   async function locate() {
@@ -413,8 +859,10 @@ function ReportForm({ onClose, onCreated }) {
     }
 
     setLocating(true);
+    setLocationAttempted(true);
     setError("");
     resetLocation();
+
     setLocationMessage(
       "Acquiring a high-accuracy GPS fix…"
     );
@@ -428,65 +876,121 @@ function ReportForm({ onClose, onCreated }) {
     let watchId = null;
     let best = null;
     let settled = false;
+    let timer = null;
 
     const finish = async () => {
       if (settled) return;
+
       settled = true;
 
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+
       if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
+        navigator.geolocation.clearWatch(
+          watchId
+        );
       }
 
       if (!best) {
         setLocating(false);
+
         setError(
           "CivicPort could not obtain a reliable GPS position. Please enable precise location and try again."
         );
+
         return;
       }
 
       if (
         !Number.isFinite(best.accuracy) ||
+        best.accuracy <= 0 ||
         best.accuracy > LOCATION_MAX_ACCURACY
       ) {
         setLocating(false);
+        setLocationResolved(false);
+
+        resetLocation();
+
         setError(
-          `GPS accuracy is currently about ${Math.round(best.accuracy)}m. CivicPort requires ${LOCATION_MAX_ACCURACY}m or better so the report can be tied to the correct location. Please try again.`
+          `GPS accuracy is currently about ${Math.round(
+            best.accuracy
+          )}m. CivicPort requires ${LOCATION_MAX_ACCURACY}m or better so the report can be tied to the correct location. Please try again.`
         );
+
         return;
       }
 
       setLocationMessage(
-        "GPS fix acquired. Verifying the street and address…"
+        "GPS fix acquired. Resolving the location details…"
       );
 
       try {
-        const verified =
+        const geocoded =
           await verifyLocation(
             best.latitude,
             best.longitude,
             best.accuracy
           );
 
+        const missingFields =
+          Array.isArray(
+            geocoded.missingFields
+          )
+            ? geocoded.missingFields
+            : getMissingLocationFields(
+                geocoded
+              );
+
         setForm(previous => ({
           ...previous,
-          latitude: verified.latitude,
-          longitude: verified.longitude,
+          latitude:
+            geocoded.latitude ??
+            best.latitude,
+          longitude:
+            geocoded.longitude ??
+            best.longitude,
           accuracy: best.accuracy,
-          locationLabel: verified.locationLabel,
-          streetAddress: verified.streetAddress,
-          streetName: verified.streetName,
-          neighbourhood: verified.neighbourhood,
-          city: verified.city,
-          state: verified.state,
-          country: verified.country,
-          locationVerified: true,
-          locationConfirmed: false
+          locationLabel:
+            geocoded.locationLabel || "",
+          streetName:
+            geocoded.streetName || "",
+          neighbourhood:
+            geocoded.neighbourhood || "",
+          city:
+            geocoded.city || "",
+          state:
+            geocoded.state || "",
+          country:
+            geocoded.country || "",
+          locationVerified:
+            Boolean(
+              geocoded.locationVerified ||
+              geocoded.verified
+            ) &&
+            missingFields.length === 0,
+          locationSource:
+            geocoded.locationSource ||
+            "gps+reverse-geocoding",
         }));
 
-        setLocationMessage(
-          "Location verified. Please confirm it matches the place you are reporting."
-        );
+        setLocationResolved(true);
+
+        if (missingFields.length > 0) {
+          setLocationMessage(
+            `GPS location captured. Please provide the ${
+              missingFields.length === 1
+                ? "missing location detail"
+                : "missing location details"
+            } below.`
+          );
+        } else {
+          setLocationMessage(
+            "Location verified from your physical GPS coordinates."
+          );
+        }
+
         setLocating(false);
       } catch (verificationError) {
         console.error(
@@ -495,18 +999,19 @@ function ReportForm({ onClose, onCreated }) {
         );
 
         setLocating(false);
+
         setError(
           verificationError.message ||
-          "CivicPort could not reliably identify the street at your current location."
+          "CivicPort could not reliably identify the location at your current position."
         );
 
         setLocationMessage(
-          "GPS detected, but the street could not be verified."
+          "GPS detected, but the location could not be resolved."
         );
       }
     };
 
-    const timer = window.setTimeout(
+    timer = window.setTimeout(
       finish,
       15000
     );
@@ -539,26 +1044,32 @@ function ReportForm({ onClose, onCreated }) {
             };
 
             setLocationMessage(
-              `GPS accuracy: ±${Math.round(accuracy)}m. Improving the location fix…`
+              `GPS accuracy: ±${Math.round(
+                accuracy
+              )}m. Improving the location fix…`
             );
           }
 
           /*
-           * Stop early once a genuinely strong GPS fix is
-           * available, reducing waiting time for good devices.
+           * Stop early once a genuinely strong GPS fix
+           * is available, reducing waiting time for good devices.
            */
           if (accuracy <= 30) {
             window.clearTimeout(timer);
+            timer = null;
             finish();
           }
         },
-        error => {
+        gpsError => {
           console.error(
             "CivicPort GPS error:",
-            error
+            gpsError
           );
 
-          window.clearTimeout(timer);
+          if (timer !== null) {
+            window.clearTimeout(timer);
+            timer = null;
+          }
 
           if (watchId !== null) {
             navigator.geolocation.clearWatch(
@@ -569,15 +1080,15 @@ function ReportForm({ onClose, onCreated }) {
           settled = true;
           setLocating(false);
 
-          if (error.code === 1) {
+          if (gpsError.code === 1) {
             setError(
               "Location permission was denied. Please allow precise location access in your browser/device settings and try again."
             );
-          } else if (error.code === 2) {
+          } else if (gpsError.code === 2) {
             setError(
               "Your device could not determine its location. Turn on GPS/location services and try again."
             );
-          } else if (error.code === 3) {
+          } else if (gpsError.code === 3) {
             setError(
               "Location detection timed out. Please try again."
             );
@@ -600,17 +1111,23 @@ function ReportForm({ onClose, onCreated }) {
     setError("");
 
     if (!form.title.trim()) {
-      setError("Please enter an issue title.");
+      setError(
+        "Please enter an issue title."
+      );
       return;
     }
 
     if (!form.category) {
-      setError("Please select an issue category.");
+      setError(
+        "Please select an issue category."
+      );
       return;
     }
 
     if (!form.description.trim()) {
-      setError("Please describe the civic issue.");
+      setError(
+        "Please describe the civic issue."
+      );
       return;
     }
 
@@ -628,18 +1145,44 @@ function ReportForm({ onClose, onCreated }) {
       return;
     }
 
+    const missingLocationFields =
+      getMissingLocationFields(form);
+
+    const parsedAccuracy = Number(form.accuracy);
+
     if (
-      !form.locationVerified ||
-      !form.locationConfirmed ||
-      !form.streetName ||
-      !form.locationLabel ||
       !Number.isFinite(Number(form.latitude)) ||
       !Number.isFinite(Number(form.longitude)) ||
-      !Number.isFinite(Number(form.accuracy)) ||
-      Number(form.accuracy) > LOCATION_MAX_ACCURACY
+      !Number.isFinite(parsedAccuracy) ||
+      parsedAccuracy <= 0
     ) {
       setError(
-        "A verified street-level location is required. Please use 'Detect my location' and confirm the detected address before submitting."
+        "A precise physical GPS location with a valid accuracy reading is required. Please use 'Detect my location' before submitting."
+      );
+      return;
+    }
+
+    if (parsedAccuracy > LOCATION_MAX_ACCURACY) {
+      setError(
+        `GPS accuracy must be ${LOCATION_MAX_ACCURACY}m or better. Please detect your location again.`
+      );
+      return;
+    }
+
+    if (missingLocationFields.length > 0) {
+      setError(
+        `Please complete the missing ${
+          missingLocationFields.length === 1
+            ? "location detail"
+            : "location details"
+        } before submitting.`
+      );
+      return;
+    }
+
+    if (!form.locationVerified) {
+      setError(
+        "The location is not fully verified yet. Please complete the missing location details."
       );
       return;
     }
@@ -649,37 +1192,100 @@ function ReportForm({ onClose, onCreated }) {
     try {
       const fd = new FormData();
 
-      fd.append("title", form.title.trim());
-      fd.append("category", form.category);
-      fd.append("description", form.description.trim());
-      fd.append("latitude", String(form.latitude));
-      fd.append("longitude", String(form.longitude));
-      fd.append("accuracy", String(form.accuracy));
-
-      /*
-       * The server independently reverse-geocodes the coordinates.
-       * locationLabel is retained only as a UI hint/compatibility
-       * field; the backend never trusts it as authoritative.
-       */
       fd.append(
-        "locationLabel",
-        form.locationLabel
+        "title",
+        form.title.trim()
       );
 
-      fd.append("photo", photo);
+      fd.append(
+        "category",
+        form.category
+      );
+
+      fd.append(
+        "description",
+        form.description.trim()
+      );
+
+      fd.append(
+        "latitude",
+        String(form.latitude)
+      );
+
+      fd.append(
+        "longitude",
+        String(form.longitude)
+      );
+
+      fd.append(
+        "accuracy",
+        String(parsedAccuracy)
+      );
+
+      fd.append(
+        "locationLabel",
+        form.locationLabel || ""
+      );
+
+      fd.append(
+        "streetName",
+        form.streetName.trim()
+      );
+
+      fd.append(
+        "neighbourhood",
+        form.neighbourhood.trim()
+      );
+
+      fd.append(
+        "city",
+        form.city.trim()
+      );
+
+      fd.append(
+        "state",
+        form.state.trim()
+      );
+
+      fd.append(
+        "country",
+        form.country.trim()
+      );
+
+      fd.append(
+        "photo",
+        photo
+      );
 
       const report =
         await api.createReport(fd);
 
       onCreated(report);
-    } catch (error) {
+    } catch (submitError) {
       console.error(
         "Report submission failed:",
-        error
+        submitError
       );
 
+      /*
+       * If the server discovers that a field is still missing
+       * after its own reverse geocoding, surface those fields
+       * back into the form instead of treating the response as
+       * a generic failure.
+       */
+      if (
+        Array.isArray(
+          submitError?.missingFields
+        )
+      ) {
+        setForm(previous => ({
+          ...previous,
+          locationVerified: false
+        }));
+      }
+
       setError(
-        error.message ||
+        submitError.message ||
         "Unable to submit civic report."
       );
     } finally {
@@ -687,12 +1293,38 @@ function ReportForm({ onClose, onCreated }) {
     }
   }
 
+  const hasCoordinates =
+    Number.isFinite(
+      Number(form.latitude)
+    ) &&
+    Number.isFinite(
+      Number(form.longitude)
+    );
+
+  const missingLocationFields =
+    getMissingLocationFields(form);
+
   const hasVerifiedLocation =
     Boolean(
       form.locationVerified &&
-      form.streetName &&
-      form.locationLabel
+      form.streetName?.trim() &&
+      form.neighbourhood?.trim() &&
+      form.city?.trim() &&
+      form.state?.trim() &&
+      form.country?.trim() &&
+      hasCoordinates &&
+      Number.isFinite(
+        Number(form.accuracy)
+      ) &&
+      Number(form.accuracy) > 0 &&
+      Number(form.accuracy) <=
+        LOCATION_MAX_ACCURACY
     );
+
+  const hasMissingLocationFields =
+    locationAttempted &&
+    hasCoordinates &&
+    missingLocationFields.length > 0;
 
   return (
     <Modal onClose={onClose}>
@@ -701,9 +1333,11 @@ function ReportForm({ onClose, onCreated }) {
           <div className="eyebrow">
             NEW CIVIC REPORT
           </div>
+
           <h2>
             Make the issue visible.
           </h2>
+
           <p>
             Give the responsible team enough
             evidence to act.
@@ -721,28 +1355,35 @@ function ReportForm({ onClose, onCreated }) {
             required
             value={form.title}
             onChange={e =>
-              setForm({
-                ...form,
+              setForm(previous => ({
+                ...previous,
                 title: e.target.value
-              })
+              }))
             }
             placeholder="e.g. Large pothole on Ikeja road"
           />
         </label>
 
         <label>
-          Category <span className="required-field">*</span>
+          Category{" "}
+          <span className="required-field">
+            *
+          </span>
+
           <select
             required
             value={form.category}
             onChange={e =>
-              setForm({
-                ...form,
+              setForm(previous => ({
+                ...previous,
                 category: e.target.value
-              })
+              }))
             }
           >
-            <option value="" disabled>
+            <option
+              value=""
+              disabled
+            >
               Select a category
             </option>
 
@@ -759,20 +1400,22 @@ function ReportForm({ onClose, onCreated }) {
           </select>
 
           <small>
-            Select the category that best describes the issue.
+            Select the category that best describes
+            the issue.
           </small>
         </label>
 
         <label>
           Description
+
           <textarea
             required
             value={form.description}
             onChange={e =>
-              setForm({
-                ...form,
+              setForm(previous => ({
+                ...previous,
                 description: e.target.value
-              })
+              }))
             }
             placeholder="Describe what is happening and why it matters."
             rows="4"
@@ -780,7 +1423,11 @@ function ReportForm({ onClose, onCreated }) {
         </label>
 
         <label>
-          Photo <span className="required-field">*</span>
+          Photo{" "}
+          <span className="required-field">
+            *
+          </span>
+
           <input
             type="file"
             accept="image/*"
@@ -788,12 +1435,15 @@ function ReportForm({ onClose, onCreated }) {
             required
             onChange={e =>
               setPhoto(
-                e.target.files?.[0] || null
+                e.target.files?.[0] ||
+                null
               )
             }
           />
+
           <small>
-            Take a picture as evidence. A clear photo is required as evidence for every report.
+            Take a picture as evidence. A clear photo
+            is required as evidence for every report.
           </small>
         </label>
 
@@ -803,12 +1453,17 @@ function ReportForm({ onClose, onCreated }) {
               <strong>
                 📍 Verified Report Location
               </strong>
+
               <span>
                 {locating
                   ? locationMessage
                   : hasVerifiedLocation
-                    ? form.locationLabel
-                    : "Not verified yet"}
+                    ? form.locationLabel ||
+                      "Location verified"
+                    : locationResolved &&
+                        hasMissingLocationFields
+                      ? locationMessage
+                      : "Not verified yet"}
               </span>
             </div>
 
@@ -816,12 +1471,15 @@ function ReportForm({ onClose, onCreated }) {
               type="button"
               className="btn btn-outline"
               onClick={locate}
-              disabled={locating || saving}
+              disabled={
+                locating ||
+                saving
+              }
             >
               {locating
                 ? "Detecting…"
-                : hasVerifiedLocation
-                  ? "Refresh location"
+                : hasCoordinates
+                  ? "Detect location"
                   : "Detect my location"}
             </button>
           </div>
@@ -833,97 +1491,154 @@ function ReportForm({ onClose, onCreated }) {
               aria-live="polite"
             >
               <span className="location-spinner" />
+
               <div>
                 <strong>
                   Establishing your location…
                 </strong>
+
                 <span>
-                  Keep location services enabled and, if possible,
-                  move where your device has a clear view of the sky.
+                  Keep location services enabled and,
+                  if possible, move where your device has
+                  a clear view of the sky.
                 </span>
               </div>
             </div>
           )}
 
-          {form.latitude &&
-            form.longitude &&
-            form.locationVerified && (
-              <>
-                <LocationPicker
-                  latitude={form.latitude}
-                  longitude={form.longitude}
-                  accuracy={form.accuracy}
-                  locationLabel={form.locationLabel}
-                />
+          {locationResolved && hasCoordinates && (
+            <>
+              <LocationPicker
+                latitude={form.latitude}
+                longitude={form.longitude}
+                accuracy={form.accuracy}
+                locationLabel={
+                  form.locationLabel
+                }
+              />
 
-                <div className="location-details">
-                  <div>
-                    <span>Verified street/address</span>
-                    <strong>
-                      {form.streetAddress ||
-                        form.streetName}
-                    </strong>
-                  </div>
+              <div className="location-details">
+                {LOCATION_FIELDS.map(
+                  field => {
+                    const value =
+                      String(
+                        form[field.key] ||
+                          ""
+                      ).trim();
 
-                  <div>
-                    <span>Area</span>
-                    <strong>
-                      {[
-                        form.neighbourhood,
-                        form.city,
-                        form.state
-                      ]
-                        .filter(Boolean)
-                        .join(", ") ||
-                        "Verified from coordinates"}
-                    </strong>
-                  </div>
+                    if (!value) {
+                      return null;
+                    }
 
-                  <div>
-                    <span>GPS accuracy</span>
-                    <strong>
-                      ±{Math.round(
-                        Number(form.accuracy)
-                      )}m
-                    </strong>
-                  </div>
+                    return (
+                      <div
+                        key={field.key}
+                      >
+                        <span>
+                          {field.label}
+                        </span>
+
+                        <strong>
+                          {value}
+                        </strong>
+                      </div>
+                    );
+                  }
+                )}
+
+                <div>
+                  <span>
+                    GPS accuracy
+                  </span>
+
+                  <strong>
+                    {Number.isFinite(
+                      Number(form.accuracy)
+                    )
+                      ? `±${Math.round(
+                          Number(
+                            form.accuracy
+                          )
+                        )}m`
+                      : "Unavailable"}
+                  </strong>
                 </div>
+              </div>
 
+              {locationResolved &&
+                !locating &&
+                hasMissingLocationFields && (
+                  <div className="location-missing-fields">
+                  <div className="location-missing-header">
+                    <strong>
+                      Complete the missing location details
+                    </strong>
+
+                    <span>
+                      CivicPort could not automatically
+                      resolve these details from the physical
+                      GPS location. Please enter only the
+                      missing information.
+                    </span>
+                  </div>
+
+                  {LOCATION_FIELDS
+                    .filter(field =>
+                      missingLocationFields.includes(
+                        field.key
+                      )
+                    )
+                    .map(field => (
+                      <label
+                        key={field.key}
+                      >
+                        {field.label}{" "}
+                        <span className="required-field">
+                          *
+                        </span>
+
+                        <input
+                          value={
+                            form[
+                              field.key
+                            ] || ""
+                          }
+                          onChange={e =>
+                            updateLocationField(
+                              field.key,
+                              e.target.value
+                            )
+                          }
+                          placeholder={
+                            field.placeholder
+                          }
+                          required
+                        />
+                      </label>
+                    ))}
+                </div>
+              )}
+
+              {hasVerifiedLocation && (
                 <div
                   className="location-confirmation"
                   role="status"
                 >
                   <span>✓</span>
+
                   <div>
                     <strong>
                       Location verified
                     </strong>
+
                     <small>
                       {locationMessage}
                     </small>
                   </div>
                 </div>
-
-                <div className="location-confirm-row">
-                  <input
-                    id="confirm-civicport-location"
-                    type="checkbox"
-                    checked={Boolean(form.locationConfirmed)}
-                    onChange={e =>
-                      setForm(previous => ({
-                        ...previous,
-                        locationConfirmed:
-                          e.target.checked
-                      }))
-                    }
-                  />
-                  <label htmlFor="confirm-civicport-location">
-                    I confirm this is the location where the civic
-                    issue is occurring.
-                  </label>
-                </div>
-              </>
-            )}
+              )}
+            </>
+          )}
         </div>
 
         {error && (
@@ -936,19 +1651,22 @@ function ReportForm({ onClose, onCreated }) {
         )}
 
         <button
+          type="submit"
           className="btn btn-primary btn-large"
           disabled={
             saving ||
             locating ||
-            !hasVerifiedLocation ||
-            !form.locationConfirmed
+            !hasVerifiedLocation
           }
         >
           {saving
             ? "Verifying & submitting…"
             : hasVerifiedLocation
               ? "Submit civic report"
-              : "Verify location to continue"}
+              : hasMissingLocationFields
+                ? "Complete location details"
+                : "Verify location to continue"}
+
           <ArrowRight size={18} />
         </button>
       </form>

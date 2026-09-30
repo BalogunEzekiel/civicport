@@ -940,7 +940,6 @@ app.get("/api/stats", async (_, res) => {
   }
 });
 
-
 /* =========================================================
    PROFESSIONAL LOCATION VERIFICATION
    ---------------------------------------------------------
@@ -950,40 +949,69 @@ app.get("/api/stats", async (_, res) => {
    2. Device-reported GPS accuracy
    3. Server-side reverse geocoding
    4. Multiple geocoding levels
-   5. Server-derived street/address
-   6. Human confirmation
+   5. Server-derived location fields
+   6. Individual citizen input only for fields the
+      geocoder could not resolve
 
-   Client-supplied location labels are NEVER authoritative.
+   Server-resolved values are authoritative.
+   Citizen input can only fill unresolved fields.
+   locationVerified and locationSource are server-controlled.
 ========================================================= */
 
 const LOCATION_MAX_ACCURACY_METERS = 100;
 const GEOCODE_TIMEOUT_MS = 10000;
 
+const LOCATION_REQUIRED_FIELDS = [
+  "streetName",
+  "neighbourhood",
+  "city",
+  "state",
+  "country"
+];
+
 function normalizeText(value) {
-  return typeof value === "string"
-    ? value.trim()
-    : "";
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function firstNonEmpty(...values) {
-  return values
-    .map(normalizeText)
-    .find(Boolean) || "";
+  return values.map(normalizeText).find(Boolean) || "";
 }
 
-function buildVerifiedLocation(
-  data,
-  latitude,
-  longitude
-) {
+function validateCoordinates(latitude, longitude) {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180
+  );
+}
+
+function getMissingLocationFields(location) {
+  return LOCATION_REQUIRED_FIELDS.filter(
+    field => !normalizeText(location?.[field])
+  );
+}
+
+function buildLocationLabel(location, fallback = "") {
+  const parts = LOCATION_REQUIRED_FIELDS
+    .map(field => normalizeText(location?.[field]))
+    .filter(Boolean);
+
+  const uniqueParts = [
+    ...new Map(parts.map(part => [part.toLowerCase(), part])).values()
+  ];
+
+  return uniqueParts.join(", ") || normalizeText(fallback);
+}
+
+function buildVerifiedLocation(data, latitude, longitude) {
   const address = data?.address || {};
 
-  /*
-   * OSM/Nominatim may use different fields depending
-   * on how the road has been mapped.
-   */
   const streetName = firstNonEmpty(
     address.road,
+    address.street,
     address.residential,
     address.pedestrian,
     address.cycleway,
@@ -993,123 +1021,80 @@ function buildVerifiedLocation(
     address.highway
   );
 
-  const houseNumber =
-    firstNonEmpty(
-      address.house_number
-    );
+  const neighbourhood = firstNonEmpty(
+    address.neighbourhood,
+    address.suburb,
+    address.quarter,
+    address.city_district,
+    address.district
+  );
 
-  const neighbourhood =
-    firstNonEmpty(
-      address.neighbourhood,
-      address.suburb,
-      address.quarter,
-      address.city_district,
-      address.district
-    );
+  const city = firstNonEmpty(
+    address.city,
+    address.town,
+    address.municipality,
+    address.village
+  );
 
-  const city =
-    firstNonEmpty(
-      address.city,
-      address.town,
-      address.municipality,
-      address.village,
-      address.city_district
-    );
+  const state = firstNonEmpty(
+    address.state,
+    address.state_district,
+    address.region
+  );
 
-  const state =
-    firstNonEmpty(
-      address.state,
-      address.state_district,
-      address.region
-    );
+  const country = firstNonEmpty(address.country);
 
-  const country =
-    firstNonEmpty(
-      address.country
-    );
-
-  const countryCode =
-    firstNonEmpty(
-      address.country_code
-    ).toLowerCase();
-
-  const postalCode =
-    firstNonEmpty(
-      address.postcode
-    );
-
-  const streetAddress = [
-    houseNumber,
-    streetName
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-
-  const locationParts = [
-    streetAddress || streetName,
+  const location = {
+    streetName,
     neighbourhood,
     city,
     state,
     country
-  ].filter(Boolean);
+  };
 
-  const uniqueParts = [
-    ...new Map(
-      locationParts.map(part => [
-        part.toLowerCase(),
-        part
-      ])
-    ).values()
-  ];
+  const missingFields = getMissingLocationFields(location);
 
   return {
-    verified: Boolean(
-      streetName &&
-      (city || state || country)
-    ),
-
-    streetAddress,
+    verified: missingFields.length === 0,
     streetName,
     neighbourhood,
     city,
     state,
     country,
-    countryCode,
-    postalCode,
-
-    locationLabel:
-      uniqueParts.length
-        ? uniqueParts.join(", ")
-        : normalizeText(
-            data?.display_name
-          ),
-
+    locationLabel: buildLocationLabel(location, data?.display_name),
     displayName:
-      normalizeText(
-        data?.display_name
-      ) ||
-      uniqueParts.join(", "),
-
+      normalizeText(data?.display_name) || buildLocationLabel(location),
     latitude,
     longitude,
-
+    missingFields,
+    requiresUserInput: missingFields.length > 0,
     address
   };
 }
 
-function validateCoordinates(
-  latitude,
-  longitude
-) {
-  return (
-    Number.isFinite(latitude) &&
-    Number.isFinite(longitude) &&
-    latitude >= -90 &&
-    latitude <= 90 &&
-    longitude >= -180 &&
-    longitude <= 180
-  );
+function mergeLocationFields(geocoded, citizen) {
+  const resolved = {};
+  const citizenProvidedFields = [];
+
+  for (const field of LOCATION_REQUIRED_FIELDS) {
+    const serverValue = normalizeText(geocoded?.[field]);
+    const citizenValue = normalizeText(citizen?.[field]);
+
+    if (serverValue) {
+      resolved[field] = serverValue;
+    } else if (citizenValue) {
+      resolved[field] = citizenValue;
+      citizenProvidedFields.push(field);
+    } else {
+      resolved[field] = "";
+    }
+  }
+
+  return {
+    resolved,
+    citizenProvidedFields,
+    missingFields: getMissingLocationFields(resolved)
+  };
 }
 
 /* =========================================================
@@ -1282,110 +1267,58 @@ async function reverseGeocodeCoordinates(
    REVERSE GEOCODING ENDPOINT
 ========================================================= */
 
-app.get(
-  "/api/geocode/reverse",
-  async (
-    req,
-    res
-  ) => {
-    try {
-      const lat =
-        Number(req.query.lat);
+app.get("/api/geocode/reverse", async (req, res) => {
+  try {
+    const lat = Number(req.query.lat);
+    const lon = Number(req.query.lon);
+    const accuracy = Number(req.query.accuracy);
 
-      const lon =
-        Number(req.query.lon);
-
-      const accuracy =
-        Number(
-          req.query.accuracy
-        );
-
-      if (
-        !validateCoordinates(
-          lat,
-          lon
-        )
-      ) {
-        return res.status(400).json({
-          verified: false,
-          error:
-            "Valid latitude and longitude are required."
-        });
-      }
-
-      if (
-        Number.isFinite(
-          accuracy
-        ) &&
-        accuracy >
-          LOCATION_MAX_ACCURACY_METERS
-      ) {
-        return res.status(422).json({
-          verified: false,
-
-          error:
-            `Location accuracy is approximately ${Math.round(
-              accuracy
-            )}m. CivicPort requires ${LOCATION_MAX_ACCURACY_METERS}m or better.`,
-
-          maxAccuracyMeters:
-            LOCATION_MAX_ACCURACY_METERS,
-
-          accuracy
-        });
-      }
-
-      const data =
-        await reverseGeocodeCoordinates(
-          lat,
-          lon
-        );
-
-      const verified =
-        buildVerifiedLocation(
-          data,
-          lat,
-          lon
-        );
-
-      if (
-        !verified.verified ||
-        !verified.streetName
-      ) {
-        return res.status(422).json({
-          ...verified,
-
-          verified: false,
-
-          error:
-            "CivicPort detected your GPS position, but the mapping service could not reliably identify the street or road. Please move to an area with a clearer GPS signal and try again."
-        });
-      }
-
-      return res.json({
-        ...verified,
-
-        verified: true,
-
-        source:
-          "server-reverse-geocoding"
-      });
-
-    } catch (error) {
-      console.error(
-        "Reverse geocoding failed:",
-        error
-      );
-
-      return res.status(503).json({
+    if (!validateCoordinates(lat, lon)) {
+      return res.status(400).json({
         verified: false,
-
-        error:
-          "CivicPort could not verify this location right now. Please try again."
+        error: "Valid latitude and longitude are required."
       });
     }
+
+    if (
+      !Number.isFinite(accuracy) ||
+      accuracy <= 0
+    ) {
+      return res.status(400).json({
+        verified: false,
+        error:
+          "A valid GPS accuracy reading is required."
+      });
+    }
+
+    if (
+      accuracy > LOCATION_MAX_ACCURACY_METERS
+    ) {
+      return res.status(422).json({
+        verified: false,
+        error:
+          `GPS accuracy must be ${LOCATION_MAX_ACCURACY_METERS}m or better.`
+      });
+    }
+
+    const data = await reverseGeocodeCoordinates(lat, lon);
+    const location = buildVerifiedLocation(data, lat, lon);
+
+    return res.json({
+      ...location,
+      locationVerified: location.verified,
+      locationSource: "gps+reverse-geocoding"
+    });
+  } catch (error) {
+    console.error("Reverse geocoding error:", error);
+
+    return res.status(503).json({
+      verified: false,
+      error:
+        "CivicPort could not verify this location right now. Please try again."
+    });
   }
-);
+});
 
 /* =========================================================
    GET ALL REPORTS
@@ -1535,17 +1468,31 @@ app.get(
    - Photo
    - Latitude
    - Longitude
-   - Location label
+   - GPS accuracy
+   - Street name
+   - Neighbourhood
+   - City
+   - State
+   - Country
 
-   Flow:
+   Location workflow:
 
    Browser
       ↓
-   Multer memory
+   Device GPS
       ↓
-   Cloudinary
+   Server reverse geocoding
+      ↓
+   Server-resolved location fields
+      ↓
+   Missing fields only → citizen input
+      ↓
+   Server merges fields
       ↓
    PostgreSQL
+
+   Server-resolved location values always take
+   priority over citizen-provided values.
 ========================================================= */
 
 app.post(
@@ -1561,6 +1508,11 @@ app.post(
         longitude,
         locationLabel,
         accuracy,
+        streetName,
+        neighbourhood,
+        city,
+        state,
+        country,
       } = req.body;
 
       /* -----------------------------------------
@@ -1633,10 +1585,10 @@ app.post(
       }
 
       if (
-        parsedLatitude < -90 ||
-        parsedLatitude > 90 ||
-        parsedLongitude < -180 ||
-        parsedLongitude > 180
+        !validateCoordinates(
+          parsedLatitude,
+          parsedLongitude
+        )
       ) {
         return res.status(400).json({
           error:
@@ -1671,8 +1623,17 @@ app.post(
       }
 
       /* -----------------------------------------
-         SERVER-SIDE LOCATION VERIFICATION
-         Never trust the browser's location label.
+        SERVER-SIDE LOCATION VERIFICATION
+        -----------------------------------------
+        Never trust the browser's location label.
+
+        The server:
+        1. Reverse-geocodes the GPS coordinates.
+        2. Uses server-resolved values whenever available.
+        3. Accepts citizen input only for fields that
+            the geocoder could not resolve.
+        4. Rejects the report if any required field
+            remains unresolved.
       ----------------------------------------- */
 
       const geocoded =
@@ -1688,16 +1649,70 @@ app.post(
           parsedLongitude
         );
 
-      if (
-        !verifiedLocation.verified ||
-        !verifiedLocation.streetName ||
-        !verifiedLocation.locationLabel
-      ) {
+      /*
+      * Merge server-resolved location fields with
+      * citizen-provided values.
+      *
+      * Server values always take priority.
+      * Citizen values can only fill missing fields.
+      */
+      const {
+        resolved: resolvedLocation,
+        citizenProvidedFields,
+        missingFields,
+      } = mergeLocationFields(
+        verifiedLocation,
+        {
+          streetName,
+          neighbourhood,
+          city,
+          state,
+          country,
+        }
+      );
+
+      /*
+      * Every required location field must be
+      * resolved before a report can be submitted.
+      */
+      if (missingFields.length > 0) {
         return res.status(422).json({
+          verified: false,
+
+          locationVerified: false,
+
+          locationSource:
+            "gps+reverse-geocoding",
+
+          missingFields,
+
+          requiresUserInput: true,
+
           error:
-            "CivicPort could not verify a street or road for this location. The report cannot be submitted until a reliable location is detected."
+            "Some required location fields could not be resolved. Please provide only the missing fields.",
         });
       }
+
+      /*
+      * Build the final location label on the server
+      * using the resolved location fields.
+      *
+      * The browser-supplied locationLabel is only
+      * retained as a fallback and is never authoritative.
+      */
+      const finalLocationLabel =
+        buildLocationLabel(
+          resolvedLocation,
+          locationLabel
+        );
+
+      /*
+      * Record whether citizen input was required.
+      */
+      const locationSource =
+        citizenProvidedFields.length > 0
+          ? "gps+reverse-geocoding+citizen-input"
+          : "gps+reverse-geocoding";
 
       /* -----------------------------------------
          GENERATE REFERENCE
@@ -1755,54 +1770,41 @@ app.post(
               description.trim(),
 
             latitude:
-              verifiedLocation.latitude,
+              parsedLatitude,
 
             longitude:
-              verifiedLocation.longitude,
+              parsedLongitude,
 
             accuracy:
               parsedAccuracy,
 
             locationLabel:
-              verifiedLocation.locationLabel,
-
-            streetAddress:
-              verifiedLocation.streetAddress ||
-              null,
+              finalLocationLabel,
 
             streetName:
-              verifiedLocation.streetName ||
+              resolvedLocation.streetName ||
               null,
 
             neighbourhood:
-              verifiedLocation.neighbourhood ||
+              resolvedLocation.neighbourhood ||
               null,
 
             city:
-              verifiedLocation.city ||
+              resolvedLocation.city ||
               null,
 
             state:
-              verifiedLocation.state ||
+              resolvedLocation.state ||
               null,
 
             country:
-              verifiedLocation.country ||
-              null,
-
-            countryCode:
-              verifiedLocation.countryCode ||
-              null,
-
-            postalCode:
-              verifiedLocation.postalCode ||
+              resolvedLocation.country ||
               null,
 
             locationVerified:
               true,
 
-            locationSource:
-              "server-reverse-geocoding",
+            locationSource,
 
             photoUrl,
 

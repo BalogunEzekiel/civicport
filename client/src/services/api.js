@@ -22,11 +22,25 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       data.error ||
       data.message ||
       `Request failed with status ${response.status}.`
     );
+
+    // Preserve structured backend information so the UI
+    // can respond intelligently to location verification
+    // failures and other API errors.
+    error.status = response.status;
+    error.data = data;
+    error.missingFields = Array.isArray(data.missingFields)
+      ? data.missingFields
+      : [];
+    error.locationVerified = data.locationVerified;
+    error.locationSource = data.locationSource;
+    error.requiresUserInput = data.requiresUserInput;
+
+    throw error;
   }
 
   return data;
