@@ -832,14 +832,37 @@ function ReportForm({
   }
 
   function updateLocationField(field, value) {
-    setForm(previous => ({
-      ...previous,
-      [field]: value,
-      locationVerified: false
-    }));
+    setForm(previous => {
+      const next = {
+        ...previous,
+        [field]: value
+      };
+
+      const allLocationFieldsComplete =
+        LOCATION_FIELDS.every(locationField =>
+          String(next[locationField.key] || "").trim()
+        );
+
+      const coordinatesValid =
+        Number.isFinite(Number(next.latitude)) &&
+        Number.isFinite(Number(next.longitude));
+
+      const accuracyValid =
+        Number.isFinite(Number(next.accuracy)) &&
+        Number(next.accuracy) > 0 &&
+        Number(next.accuracy) <= LOCATION_MAX_ACCURACY;
+
+      return {
+        ...next,
+        locationVerified:
+          allLocationFieldsComplete &&
+          coordinatesValid &&
+          accuracyValid
+      };
+    });
 
     setLocationMessage(
-      "Location details were edited. CivicPort must verify the completed location before submission."
+      "Location details updated. CivicPort will verify the completed location before submission."
     );
   }
 
@@ -1565,57 +1588,42 @@ function ReportForm({
                 </div>
               </div>
 
-              {locationResolved &&
-                !locating &&
-                hasMissingLocationFields && (
-                  <div className="location-missing-fields">
+              {locationResolved && !locating && (
+                <div className="location-missing-fields">
                   <div className="location-missing-header">
                     <strong>
-                      Complete the missing location details
+                      {hasMissingLocationFields
+                        ? "Complete the missing location details"
+                        : "Confirm your location details"}
                     </strong>
 
                     <span>
-                      CivicPort could not automatically
-                      resolve these details from the physical
-                      GPS location. Please enter only the
-                      missing information.
+                      {hasMissingLocationFields
+                        ? "Some location details could not be automatically resolved from your physical GPS location. Please complete the fields below."
+                        : "Review the location details detected from your physical GPS position."}
                     </span>
                   </div>
 
-                  {LOCATION_FIELDS
-                    .filter(field =>
-                      missingLocationFields.includes(
-                        field.key
-                      )
-                    )
-                    .map(field => (
-                      <label
-                        key={field.key}
-                      >
-                        {field.label}{" "}
-                        <span className="required-field">
-                          *
-                        </span>
+                  {LOCATION_FIELDS.map(field => (
+                    <label key={field.key}>
+                      {field.label}{" "}
+                      <span className="required-field">
+                        *
+                      </span>
 
-                        <input
-                          value={
-                            form[
-                              field.key
-                            ] || ""
-                          }
-                          onChange={e =>
-                            updateLocationField(
-                              field.key,
-                              e.target.value
-                            )
-                          }
-                          placeholder={
-                            field.placeholder
-                          }
-                          required
-                        />
-                      </label>
-                    ))}
+                      <input
+                        value={form[field.key] || ""}
+                        onChange={e =>
+                          updateLocationField(
+                            field.key,
+                            e.target.value
+                          )
+                        }
+                        placeholder={field.placeholder}
+                        required
+                      />
+                    </label>
+                  ))}
                 </div>
               )}
 
