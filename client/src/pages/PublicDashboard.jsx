@@ -744,6 +744,7 @@ function ReportForm({
   const [saving, setSaving] = useState(false);
   const [locationResolved, setLocationResolved] = useState(false);
   const [locationAttempted, setLocationAttempted] = useState(false);
+  const [locationInputFields, setLocationInputFields] = useState([]);
   const [locationMessage, setLocationMessage] = useState(
     "Your precise device location is required."
   );
@@ -766,6 +767,7 @@ function ReportForm({
     }));
 
     setLocationResolved(false);
+    setLocationInputFields([]);
 
     setLocationMessage(
       "Your precise device location is required."
@@ -832,37 +834,14 @@ function ReportForm({
   }
 
   function updateLocationField(field, value) {
-    setForm(previous => {
-      const next = {
-        ...previous,
-        [field]: value
-      };
-
-      const allLocationFieldsComplete =
-        LOCATION_FIELDS.every(locationField =>
-          String(next[locationField.key] || "").trim()
-        );
-
-      const coordinatesValid =
-        Number.isFinite(Number(next.latitude)) &&
-        Number.isFinite(Number(next.longitude));
-
-      const accuracyValid =
-        Number.isFinite(Number(next.accuracy)) &&
-        Number(next.accuracy) > 0 &&
-        Number(next.accuracy) <= LOCATION_MAX_ACCURACY;
-
-      return {
-        ...next,
-        locationVerified:
-          allLocationFieldsComplete &&
-          coordinatesValid &&
-          accuracyValid
-      };
-    });
+    setForm(previous => ({
+      ...previous,
+      [field]: value,
+      locationVerified: false
+    }));
 
     setLocationMessage(
-      "Location details updated. CivicPort will verify the completed location before submission."
+      "Complete the missing location details, then click Submit. CivicPort will verify the final location before creating the report."
     );
   }
 
@@ -922,7 +901,6 @@ function ReportForm({
         setError(
           "CivicPort could not obtain a reliable GPS position. Please enable precise location and try again."
         );
-
         return;
       }
 
@@ -966,6 +944,8 @@ function ReportForm({
                 geocoded
               );
 
+        setLocationInputFields(missingFields);
+
         setForm(previous => ({
           ...previous,
           latitude:
@@ -987,12 +967,7 @@ function ReportForm({
             geocoded.state || "",
           country:
             geocoded.country || "",
-          locationVerified:
-            Boolean(
-              geocoded.locationVerified ||
-              geocoded.verified
-            ) &&
-            missingFields.length === 0,
+          locationVerified: false,
           locationSource:
             geocoded.locationSource ||
             "gps+reverse-geocoding",
@@ -1203,13 +1178,6 @@ function ReportForm({
       return;
     }
 
-    if (!form.locationVerified) {
-      setError(
-        "The location is not fully verified yet. Please complete the missing location details."
-      );
-      return;
-    }
-
     setSaving(true);
 
     try {
@@ -1299,12 +1267,19 @@ function ReportForm({
       if (
         Array.isArray(
           submitError?.missingFields
-        )
+        ) &&
+        submitError.missingFields.length > 0
       ) {
+        setLocationInputFields(
+          submitError.missingFields
+        );
+
         setForm(previous => ({
           ...previous,
           locationVerified: false
         }));
+
+        setLocationResolved(true);
       }
 
       setError(
@@ -1327,6 +1302,22 @@ function ReportForm({
   const missingLocationFields =
     getMissingLocationFields(form);
 
+  const hasCompleteLocation =
+    Boolean(
+      form.streetName?.trim() &&
+      form.neighbourhood?.trim() &&
+      form.city?.trim() &&
+      form.state?.trim() &&
+      form.country?.trim() &&
+      hasCoordinates &&
+      Number.isFinite(
+        Number(form.accuracy)
+      ) &&
+      Number(form.accuracy) > 0 &&
+      Number(form.accuracy) <=
+        LOCATION_MAX_ACCURACY
+    );
+
   const hasVerifiedLocation =
     Boolean(
       form.locationVerified &&
@@ -1345,9 +1336,8 @@ function ReportForm({
     );
 
   const hasMissingLocationFields =
-    locationAttempted &&
-    hasCoordinates &&
-    missingLocationFields.length > 0;
+    locationResolved &&
+    locationInputFields.length > 0;
 
   return (
     <Modal onClose={onClose}>
@@ -1549,7 +1539,10 @@ function ReportForm({
                           ""
                       ).trim();
 
-                    if (!value) {
+                    if (
+                      !value ||
+                      locationInputFields.includes(field.key)
+                    ) {
                       return null;
                     }
 
@@ -1588,44 +1581,50 @@ function ReportForm({
                 </div>
               </div>
 
-              {locationResolved && !locating && (
-                <div className="location-missing-fields">
-                  <div className="location-missing-header">
-                    <strong>
-                      {hasMissingLocationFields
-                        ? "Complete the missing location details"
-                        : "Confirm your location details"}
-                    </strong>
+              {locationResolved &&
+                !locating &&
+                locationInputFields.length > 0 && (
+                  <div className="location-missing-fields">
+                    <div className="location-missing-header">
+                      <strong>
+                        Complete the missing location details
+                      </strong>
 
-                    <span>
-                      {hasMissingLocationFields
-                        ? "Some location details could not be automatically resolved from your physical GPS location. Please complete the fields below."
-                        : "Review the location details detected from your physical GPS position."}
-                    </span>
-                  </div>
-
-                  {LOCATION_FIELDS.map(field => (
-                    <label key={field.key}>
-                      {field.label}{" "}
-                      <span className="required-field">
-                        *
+                      <span>
+                        CivicPort could not automatically resolve
+                        these details from the physical GPS location.
+                        Complete the fields below, then click Submit.
+                        CivicPort will verify the final location before
+                        creating the report.
                       </span>
+                    </div>
 
-                      <input
-                        value={form[field.key] || ""}
-                        onChange={e =>
-                          updateLocationField(
-                            field.key,
-                            e.target.value
-                          )
-                        }
-                        placeholder={field.placeholder}
-                        required
-                      />
-                    </label>
-                  ))}
-                </div>
-              )}
+                    {LOCATION_FIELDS
+                      .filter(field =>
+                        locationInputFields.includes(field.key)
+                      )
+                      .map(field => (
+                        <label key={field.key}>
+                          {field.label}{" "}
+                          <span className="required-field">
+                            *
+                          </span>
+
+                          <input
+                            value={form[field.key] || ""}
+                            onChange={e =>
+                              updateLocationField(
+                                field.key,
+                                e.target.value
+                              )
+                            }
+                            placeholder={field.placeholder}
+                            required
+                          />
+                        </label>
+                      ))}
+                  </div>
+                )}
 
               {hasVerifiedLocation && (
                 <div
@@ -1664,13 +1663,13 @@ function ReportForm({
           disabled={
             saving ||
             locating ||
-            !hasVerifiedLocation
+            !hasCompleteLocation
           }
         >
           {saving
             ? "Verifying & submitting…"
-            : hasVerifiedLocation
-              ? "Submit civic report"
+            : hasCompleteLocation
+              ? "Verify & submit report"
               : hasMissingLocationFields
                 ? "Complete location details"
                 : "Verify location to continue"}
