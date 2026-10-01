@@ -63,22 +63,22 @@ const LOCATION_FIELDS = [
   {
     key: "neighbourhood",
     label: "Neighbourhood",
-    placeholder: "Enter your neighbourhood"
+    placeholder: "Enter the neighbourhood"
   },
   {
     key: "city",
     label: "City",
-    placeholder: "Enter your city"
+    placeholder: "Enter the city"
   },
   {
     key: "state",
     label: "State",
-    placeholder: "Enter your state"
+    placeholder: "Enter the state"
   },
   {
     key: "country",
     label: "Country",
-    placeholder: "Enter your country"
+    placeholder: "Enter the country"
   }
 ];
 
