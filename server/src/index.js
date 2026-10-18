@@ -13,6 +13,11 @@ import {
   generateReportBrief,
   isAIConfigured,
 } from "./services/ai.js";
+import {
+  isNipostConfigured,
+  lookupDigitalPostcodeByCoordinates,
+  verifyDigitalPostcode,
+} from "./services/nipostPostcode.js";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -1321,6 +1326,83 @@ app.get("/api/geocode/reverse", async (req, res) => {
 });
 
 /* =========================================================
+   NIPOST DIGITAL POSTCODE INTEGRATION
+   ---------------------------------------------------------
+   GPS remains the primary report location. The official
+   Digital Postcode supplements it with a building-level
+   reference when NIPOST can resolve and verify one.
+========================================================= */
+
+function nipostHttpStatus(error) {
+  if (
+    error?.code === "NIPOST_NOT_CONFIGURED" ||
+    error?.code === "NIPOST_CONFIGURATION_ERROR" ||
+    error?.code === "NIPOST_COORDINATE_LOOKUP_NOT_CONFIGURED"
+  ) return 503;
+  if (error?.code === "NIPOST_TIMEOUT") return 504;
+  if (error?.code === "INVALID_COORDINATES") return 400;
+  return 502;
+}
+
+app.get("/api/postcode/health", (_req, res) => {
+  res.json({
+    configured: isNipostConfigured(),
+    service: "NIPOST Digital Postcode",
+    gpsRemainsPrimary: true,
+  });
+});
+
+app.get("/api/postcode/lookup-by-coordinates", async (req, res) => {
+  try {
+    const result = await lookupDigitalPostcodeByCoordinates(
+      req.query.lat,
+      req.query.lon
+    );
+    return res.json(result);
+  } catch (error) {
+    const status = nipostHttpStatus(error);
+    if (status >= 500) {
+      console.warn("NIPOST coordinate lookup unavailable:", error.message);
+    }
+    return res.status(status).json({
+      verified: false,
+      status: error.code || "nipost_lookup_failed",
+      error: error.message || "NIPOST postcode lookup is unavailable.",
+    });
+  }
+});
+
+app.post("/api/postcode/verify", async (req, res) => {
+  try {
+    const postcode =
+      typeof req.body?.postcode === "string"
+        ? req.body.postcode
+        : "";
+
+    const result = await verifyDigitalPostcode(postcode, {
+      latitude: req.body?.latitude,
+      longitude: req.body?.longitude,
+    });
+
+    if (!result.verified) {
+      return res.status(422).json(result);
+    }
+
+    return res.json(result);
+  } catch (error) {
+    const status = nipostHttpStatus(error);
+    if (status >= 500) {
+      console.warn("NIPOST postcode verification unavailable:", error.message);
+    }
+    return res.status(status).json({
+      verified: false,
+      status: error.code || "nipost_verification_failed",
+      error: error.message || "CivicPort could not verify this postcode.",
+    });
+  }
+});
+
+/* =========================================================
    GET ALL REPORTS
 ========================================================= */
 
@@ -1513,6 +1595,7 @@ app.post(
         city,
         state,
         country,
+        digitalPostcode,
       } = req.body;
 
       /* -----------------------------------------
@@ -1714,6 +1797,72 @@ app.post(
           ? "gps+reverse-geocoding+citizen-input"
           : "gps+reverse-geocoding";
 
+      /*
+       * Verify any supplied Digital Postcode with NIPOST.
+       * It remains optional for roads, drains and other assets
+       * that may not have a building-level postcode.
+       */
+      let postcodeRecord = {
+        digitalPostcode: null,
+        postcodeVerified: false,
+        postcodeStatus: "not_provided",
+        postcodeLocationMatch: null,
+        postcodeDistanceMeters: null,
+        postcodeLocationLabel: null,
+        postcodeVerifiedAt: null,
+      };
+
+      const submittedPostcode =
+        typeof digitalPostcode === "string"
+          ? digitalPostcode.trim().toUpperCase().replace(/[\s-]/g, "")
+          : "";
+
+      if (submittedPostcode) {
+        let postcodeVerification;
+
+        try {
+          postcodeVerification = await verifyDigitalPostcode(
+            submittedPostcode,
+            {
+              latitude: parsedLatitude,
+              longitude: parsedLongitude,
+            }
+          );
+        } catch (postcodeError) {
+          const status = nipostHttpStatus(postcodeError);
+          return res.status(status).json({
+            error:
+              "CivicPort could not verify the supplied Digital Postcode. Retry verification or remove the postcode and submit the GPS-identified report.",
+            postcodeStatus: postcodeError.code || "verification_unavailable",
+          });
+        }
+
+        if (!postcodeVerification.verified) {
+          return res.status(422).json({
+            error:
+              postcodeVerification.error ||
+              "The supplied Digital Postcode could not be verified with NIPOST.",
+            postcodeStatus: postcodeVerification.status || "not_verified",
+          });
+        }
+
+        postcodeRecord = {
+          digitalPostcode: postcodeVerification.postcode,
+          postcodeVerified: true,
+          postcodeStatus: postcodeVerification.status || "verified",
+          postcodeLocationMatch:
+            typeof postcodeVerification.coordinatesMatch === "boolean"
+              ? postcodeVerification.coordinatesMatch
+              : null,
+          postcodeDistanceMeters:
+            Number.isFinite(postcodeVerification.distanceFromGpsMeters)
+              ? Math.round(postcodeVerification.distanceFromGpsMeters)
+              : null,
+          postcodeLocationLabel: postcodeVerification.displayName || null,
+          postcodeVerifiedAt: new Date(),
+        };
+      }
+
       /* -----------------------------------------
          GENERATE REFERENCE
       ----------------------------------------- */
@@ -1805,6 +1954,8 @@ app.post(
               true,
 
             locationSource,
+
+            ...postcodeRecord,
 
             photoUrl,
 

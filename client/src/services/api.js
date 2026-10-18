@@ -39,6 +39,8 @@ async function request(path, options = {}) {
     error.locationVerified = data.locationVerified;
     error.locationSource = data.locationSource;
     error.requiresUserInput = data.requiresUserInput;
+    error.postcodeStatus = data.postcodeStatus || data.status;
+    error.postcodeVerified = data.verified;
 
     throw error;
   }
@@ -53,6 +55,34 @@ export const api = {
   ===================================================== */
 
   stats: () => request("/stats"),
+
+  /* =====================================================
+     NIPOST DIGITAL POSTCODE
+  ===================================================== */
+
+  postcodeStatus: () =>
+    request("/postcode/health"),
+
+  postcodeByCoordinates: (latitude, longitude) => {
+    const qs = new URLSearchParams({
+      lat: String(latitude),
+      lon: String(longitude),
+    });
+    return request(`/postcode/lookup-by-coordinates?${qs}`);
+  },
+
+  verifyPostcode: (postcode, latitude, longitude) =>
+    request("/postcode/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        postcode,
+        latitude,
+        longitude,
+      }),
+    }),
 
   /* =====================================================
      REPORTS

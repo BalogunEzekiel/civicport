@@ -25,6 +25,13 @@ model Report {
   country           String?
   locationVerified  Boolean          @default(false)
   locationSource    String?
+  digitalPostcode   String?
+  postcodeVerified  Boolean          @default(false)
+  postcodeStatus    String?
+  postcodeLocationMatch Boolean?
+  postcodeDistanceMeters Int?
+  postcodeLocationLabel String?
+  postcodeVerifiedAt DateTime?
   status            String           @default("Submitted")
   priority          String           @default("Medium")
   department        String?

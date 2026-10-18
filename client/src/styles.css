@@ -3767,3 +3767,74 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
 .location-box:has(.location-confirmation) {
   border-color: rgba(34, 139, 80, 0.35);
 }
+
+
+/* NIPOST Digital Postcode */
+.postcode-panel {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border, #d9e0e7);
+  border-radius: 0.85rem;
+  background: var(--surface-soft, rgba(127, 127, 127, 0.045));
+}
+.postcode-panel label {
+  display: grid;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+.postcode-panel input {
+  width: 100%;
+  min-width: 0;
+  text-transform: uppercase;
+}
+.optional-field {
+  font-size: 0.82em;
+  font-weight: 400;
+  opacity: 0.75;
+}
+.postcode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.postcode-status {
+  min-width: 0;
+  flex: 1 1 220px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+.postcode-status.is-verified {
+  color: #16784b;
+  opacity: 1;
+}
+.postcode-confirmation {
+  display: grid;
+  gap: 0.3rem;
+  border-left: 3px solid #198754;
+  padding: 0.65rem 0.8rem;
+  background: rgba(25, 135, 84, 0.07);
+  border-radius: 0.4rem;
+  overflow-wrap: anywhere;
+}
+.postcode-confirmation span {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.postcode-confirmation small {
+  font-size: 0.82rem;
+  opacity: 0.8;
+}
+
+.postcode-report-detail {
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+.postcode-table-value {
+  display: block;
+  margin-top: 0.25rem;
+  opacity: 0.8;
+}

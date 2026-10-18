@@ -790,6 +790,11 @@ function ReportsPage({
 
                   <td>
                     {r.locationLabel || "—"}
+                    {r.postcodeVerified && r.digitalPostcode && (
+                      <small className="postcode-table-value">
+                        NIPOST: {r.digitalPostcode}
+                      </small>
+                    )}
                   </td>
 
                   <td>
@@ -2038,9 +2043,18 @@ function AnalyticsPage({
             icon={<CheckCircle2 />}
             label="Resolution Rate"
             value={`${resolutionRate}%`}
-            detail={`${analytics.resolved} resolved`}
+            detail={`${analytics.resolved} resolved of ${
+              analytics.total - analytics.rejected
+            } actionable reports`}
           />
-
+{/*
+          <AnalyticsMetric
+            icon={<CheckCircle2 />}
+            label="Resolution Rate"
+            value={`${resolutionRate}%`}
+            detail={`${analytics.resolved} resolved of {detail={`${analytics.total}-(detail={'${analytics.rejected}} actionalbe reports`}
+          />
+*/}
           <AnalyticsMetric
             icon={<AlertTriangle />}
             label="High priority"
@@ -2064,7 +2078,8 @@ function AnalyticsPage({
               (analytics.status["Resolved"] || 0) -
               (analytics.status["Rejected"] || 0)
             }
-            detail="Requires attention"
+            detail="Requires attention |
+            Submitted + Under Review + Assigned + In Progress"
           />
 
         </section>
@@ -4177,6 +4192,14 @@ function AdminModal({
           <p>
             {report.locationLabel}
           </p>
+          {report.postcodeVerified && report.digitalPostcode && (
+            <p className="postcode-report-detail">
+              <strong>NIPOST Digital Postcode:</strong>{" "}
+              {report.digitalPostcode}
+              {report.postcodeLocationMatch === true && " · GPS match confirmed"}
+              {report.postcodeLocationMatch === false && " · GPS mismatch"}
+            </p>
+          )}
         </div>
 
         <StatusBadge
