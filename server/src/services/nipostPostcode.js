@@ -63,15 +63,20 @@ async function requestNipost(path, params = {}) {
     }
 
     if (!response.ok) {
+      const upstreamDetail = text
+        .replace(/[\r\n\t]+/g, " ")
+        .slice(0, 500);
+
+      console.error("[NIPOST API ERROR]", {
+        endpoint: url.pathname,
+        status: response.status,
+        response: upstreamDetail,
+      });
+
       const error = new Error(
-        response.status === 401 || response.status === 403
-          ? "NIPOST rejected the API key or its permissions."
-          : response.status === 404
-            ? "The requested NIPOST endpoint or postcode was not found. Check the API documentation and postcode."
-            : response.status === 429
-              ? "NIPOST rate limit reached. Please retry later."
-              : `NIPOST postcode request failed with HTTP ${response.status}.`
+        `NIPOST request to ${url.pathname} failed with HTTP ${response.status}.`
       );
+
       error.code = "NIPOST_UPSTREAM_ERROR";
       error.status = response.status;
       throw error;
