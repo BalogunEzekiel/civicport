@@ -318,10 +318,11 @@ export async function lookupDigitalPostcodeByCoordinates(latitudeInput, longitud
     25,
     Math.min(250, Number(process.env.NIPOST_REVERSE_GEOCODE_RADIUS_METERS) || 25)
   );
-  const payload = await requestNipost("/v1/reverse-geocode", {
+
+  const payload = await requestNipost("/v1/search/reverse", {
     lat: latitude,
-    lon: longitude,
-    radius_m: radius,
+    lng: longitude,
+    max_distance_m: radius,
   });
 
   const result = normalizePostcodeResponse(payload);

@@ -764,7 +764,7 @@ function ReportForm({
   );
   const [postcodeChecking, setPostcodeChecking] = useState(false);
   const [postcodeMessage, setPostcodeMessage] = useState(
-    "Optional: verify the building's official NIPOST Digital Postcode."
+    "Your Digital Postcode will be detected automatically from GPS, where available."
   );
   const [error, setError] = useState("");
 
@@ -792,7 +792,7 @@ function ReportForm({
     }));
 
     setPostcodeMessage(
-      "Optional: verify the building's official NIPOST Digital Postcode."
+      "Your Digital Postcode will be detected automatically from GPS, where available."
     );
 
     setLocationResolved(false);
@@ -1125,8 +1125,13 @@ function ReportForm({
 
         setPostcodeMessage(
           postcodeLookup?.verified
-            ? (postcodeLookup.message || "NIPOST postcode resolved from GPS. Review the code before submission.")
-            : "GPS location is ready. Enter the building's Digital Postcode and verify it if available; road and infrastructure reports may not have a building postcode."
+            ? (
+                postcodeLookup.message ||
+                "NIPOST Digital Postcode detected and verified from GPS."
+              )
+            : (
+                "No verified building postcode was found near this GPS location. The postcode will remain blank if unavailable."
+              )
         );
 
         setLocating(false);
@@ -1733,54 +1738,29 @@ function ReportForm({
                 </div>
               </div>
 
+              
               <div className="postcode-panel">
                 <label htmlFor="civicport-digital-postcode">
-                  NIPOST Digital Postcode <span className="optional-field">(optional where unavailable)</span>
+                  NIPOST Digital Postcode{" "}
+                  <span className="optional-field">
+                    (automatically detected from GPS, where available)
+                  </span>
                   <input
                     id="civicport-digital-postcode"
-                    value={form.digitalPostcode}
+                    value={form.digitalPostcode || ""}
+                    readOnly
+                    aria-readonly="true"
                     maxLength={14}
-                    autoCapitalize="characters"
                     autoComplete="postal-code"
-                    placeholder="e.g. FC02A09DB09"
-                    onChange={event => {
-                      const value = event.target.value.toUpperCase();
-                      setForm(previous => ({
-                        ...previous,
-                        digitalPostcode: value,
-                        postcodeVerified: false,
-                        postcodeStatus: value.trim() ? "needs_verification" : "not_provided",
-                        postcodeLocationMatch: null,
-                        postcodeDistanceMeters: null,
-                        postcodeLocationLabel: "",
-                        postcodeVerifiedAt: ""
-                      }));
-                      setPostcodeMessage(
-                        value.trim()
-                          ? "Verify this code with NIPOST before submitting."
-                          : "Optional: verify the building's official NIPOST Digital Postcode."
-                      );
-                    }}
+                    placeholder="Detecting postcode from GPS..."
                   />
                 </label>
 
                 <div className="postcode-actions">
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={verifyPostcode}
-                    disabled={
-                      postcodeChecking ||
-                      locating ||
-                      saving ||
-                      !hasCoordinates ||
-                      !String(form.digitalPostcode || "").trim()
-                    }
-                  >
-                    {postcodeChecking ? "Verifying…" : "Verify postcode"}
-                  </button>
                   <span
-                    className={`postcode-status ${form.postcodeVerified ? "is-verified" : ""}`}
+                    className={`postcode-status ${
+                      form.postcodeVerified ? "is-verified" : ""
+                    }`}
                     role="status"
                     aria-live="polite"
                   >
@@ -1792,14 +1772,18 @@ function ReportForm({
                   <div className="postcode-confirmation">
                     <strong>✓ NIPOST postcode verified</strong>
                     <span>{form.digitalPostcode}</span>
+
                     {form.postcodeLocationLabel && (
                       <small>{form.postcodeLocationLabel}</small>
                     )}
-                    {Number.isFinite(Number(form.postcodeDistanceMeters)) && (
-                      <small>
-                        Postcode location is approximately {form.postcodeDistanceMeters}m from the captured GPS point.
-                      </small>
-                    )}
+
+                    {Number.isFinite(Number(form.postcodeDistanceMeters)) &&
+                      form.postcodeDistanceMeters !== null && (
+                        <small>
+                          Postcode location is approximately{" "}
+                          {form.postcodeDistanceMeters}m from the captured GPS point.
+                        </small>
+                      )}
                   </div>
                 )}
               </div>

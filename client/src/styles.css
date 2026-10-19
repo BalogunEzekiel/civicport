@@ -3789,6 +3789,10 @@ footer{padding:30px 7%;display:flex;align-items:center;justify-content:space-bet
   min-width: 0;
   text-transform: uppercase;
 }
+.postcode-panel input[readonly] {
+  cursor: default;
+  opacity: 0.85;
+}
 .optional-field {
   font-size: 0.82em;
   font-weight: 400;
