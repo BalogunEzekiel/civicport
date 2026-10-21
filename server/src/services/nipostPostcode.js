@@ -565,6 +565,8 @@ export async function lookupDigitalPostcodeByCoordinates(
     max_distance_m: radius,
   });
 
+  console.log("[NIPOST REVERSE RESPONSE]", JSON.stringify(payload));
+  
   const result = normalizePostcodeResponse(payload);
 
   // The official reverse-geocode endpoint confirms matches with
