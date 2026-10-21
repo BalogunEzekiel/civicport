@@ -1352,12 +1352,17 @@ app.get("/api/postcode/health", (_req, res) => {
   });
 });
 
+
 app.get("/api/postcode/lookup-by-coordinates", async (req, res) => {
   try {
+    const latitude = req.query.latitude ?? req.query.lat;
+    const longitude = req.query.longitude ?? req.query.lon;
+
     const result = await lookupDigitalPostcodeByCoordinates(
-      req.query.lat,
-      req.query.lon
+      latitude,
+      longitude
     );
+
     return res.json(result);
   } catch (error) {
     if (
