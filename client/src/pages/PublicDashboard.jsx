@@ -762,7 +762,6 @@ function ReportForm({
   const [locationMessage, setLocationMessage] = useState(
     "Your precise device location is required."
   );
-  const [postcodeChecking, setPostcodeChecking] = useState(false);
   const [postcodeMessage, setPostcodeMessage] = useState(
     "Your Digital Postcode will be detected automatically from GPS, where available."
   );
@@ -862,83 +861,13 @@ function ReportForm({
     return data;
   }
 
-  async function verifyPostcode() {
-    const postcode = String(form.digitalPostcode || "").trim();
-
-    if (!postcode) {
-      setPostcodeMessage("Enter the 11-character Digital Postcode first.");
-      return;
-    }
-
-    if (!hasCoordinates) {
-      setPostcodeMessage("Detect and resolve GPS location before verifying the postcode.");
-      return;
-    }
-
-    setPostcodeChecking(true);
-    setError("");
-    setPostcodeMessage("Checking postcode with the official NIPOST service…");
-
-    try {
-      const result = await api.verifyPostcode(
-        postcode,
-        Number(form.latitude),
-        Number(form.longitude)
-      );
-
-      setForm(previous => ({
-        ...previous,
-        digitalPostcode: result.postcode || postcode.toUpperCase().replace(/[\s-]/g, ""),
-        postcodeVerified: Boolean(result.verified),
-        postcodeStatus: result.status || "verified",
-        postcodeLocationMatch:
-          typeof result.coordinatesMatch === "boolean"
-            ? result.coordinatesMatch
-            : null,
-        postcodeDistanceMeters:
-          Number.isFinite(result.distanceFromGpsMeters)
-            ? Math.round(result.distanceFromGpsMeters)
-            : null,
-        postcodeLocationLabel: result.displayName || "",
-        postcodeVerifiedAt: result.verified ? new Date().toISOString() : ""
-      }));
-
-      setPostcodeMessage(
-        result.message ||
-        "NIPOST verified the postcode. Review the result before submitting."
-      );
-    } catch (verificationError) {
-      setForm(previous => ({
-        ...previous,
-        postcodeVerified: false,
-        postcodeStatus:
-          verificationError?.data?.status ||
-          "verification_failed",
-        postcodeLocationMatch: null,
-        postcodeDistanceMeters: null,
-        postcodeLocationLabel: "",
-        postcodeVerifiedAt: ""
-      }));
-
-      setPostcodeMessage(
-        verificationError.message ||
-        "The postcode could not be verified. Check it and try again."
-      );
-    } finally {
-      setPostcodeChecking(false);
-    }
-  }
-
   function updateLocationField(field, value) {
     setForm(previous => ({
       ...previous,
       [field]: value,
-      locationVerified: false,
-      postcodeVerified: false,
-      postcodeStatus: previous.digitalPostcode ? "needs_reverification" : "not_provided",
-      postcodeLocationMatch: null,
-      postcodeDistanceMeters: null,
-      postcodeVerifiedAt: ""
+      // The postcode belongs to the captured GPS point, not editable
+      // address text. Changing a missing address detail must not invalidate it.
+      locationVerified: false
     }));
 
     setLocationMessage(
@@ -1050,15 +979,17 @@ function ReportForm({
         // Optional automatic lookup: a NIPOST outage or an unavailable
         // coordinate endpoint must never invalidate an otherwise valid GPS fix.
         let postcodeLookup = null;
+        let postcodeLookupErrorMessage = "";
         try {
           postcodeLookup = await api.postcodeByCoordinates(
             geocoded.latitude ?? best.latitude,
             geocoded.longitude ?? best.longitude
           );
         } catch (postcodeLookupError) {
+          postcodeLookupErrorMessage = postcodeLookupError.message || "";
           console.info(
             "Automatic NIPOST postcode lookup unavailable:",
-            postcodeLookupError.message
+            postcodeLookupErrorMessage
           );
         }
 
@@ -1088,8 +1019,10 @@ function ReportForm({
             geocoded.locationSource ||
             "gps+reverse-geocoding",
           digitalPostcode:
-            postcodeLookup?.postcode || "",
-          postcodeVerified: Boolean(postcodeLookup?.verified),
+            postcodeLookup?.verified ? postcodeLookup.postcode || "" : "",
+          postcodeVerified: Boolean(
+            postcodeLookup?.verified && postcodeLookup?.postcode
+          ),
           postcodeStatus:
             postcodeLookup?.status ||
             "not_provided",
@@ -1124,13 +1057,15 @@ function ReportForm({
         }
 
         setPostcodeMessage(
-          postcodeLookup?.verified
+          postcodeLookup?.verified && postcodeLookup?.postcode
             ? (
                 postcodeLookup.message ||
                 "NIPOST Digital Postcode detected and verified from GPS."
               )
             : (
-                "No verified building postcode was found near this GPS location. The postcode will remain blank if unavailable."
+                postcodeLookup?.error ||
+                postcodeLookupErrorMessage ||
+                "NIPOST could not confirm a building postcode for this GPS location. The postcode will remain blank."
               )
         );
 
@@ -1323,13 +1258,6 @@ function ReportForm({
       return;
     }
 
-    if (String(form.digitalPostcode || "").trim() && !form.postcodeVerified) {
-      setError(
-        "The Digital Postcode was entered but has not been verified. Verify it or clear the field before submitting."
-      );
-      return;
-    }
-
     setSaving(true);
 
     try {
@@ -1393,11 +1321,6 @@ function ReportForm({
       fd.append(
         "country",
         form.country.trim()
-      );
-
-      fd.append(
-        "digitalPostcode",
-        String(form.digitalPostcode || "").trim()
       );
 
       fd.append(
@@ -1752,7 +1675,15 @@ function ReportForm({
                     aria-readonly="true"
                     maxLength={14}
                     autoComplete="postal-code"
-                    placeholder="Detecting postcode from GPS..."
+                    placeholder={
+                      locating
+                        ? "Detecting postcode from GPS..."
+                        : form.postcodeVerified
+                          ? "NIPOST postcode verified"
+                          : locationResolved
+                            ? "No verified postcode available"
+                            : "Automatically detected after GPS capture"
+                    }
                   />
                 </label>
 

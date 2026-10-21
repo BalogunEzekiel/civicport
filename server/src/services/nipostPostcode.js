@@ -598,26 +598,12 @@ export async function lookupDigitalPostcodeByCoordinates(
     throw error;
   }
 
-  // Independently check the returned postcode against NIPOST's lookup API.
-  const verification = await verifyDigitalPostcode(result.postcode, {
-    latitude,
-    longitude,
-  });
-
-  if (!verification.verified) {
-    const error = new Error(
-      verification.error ||
-        "NIPOST could not verify the postcode returned for these coordinates."
-    );
-
-    error.code =
-      verification.status || "NIPOST_VERIFICATION_FAILED";
-
-    throw error;
-  }
-
+  // The official reverse-geocode response itself confirms the GPS-linked
+  // building when data.found is true and data.unit.postcode is present.
+  // Do not require a second /v1/lookup call here: that endpoint can have a
+  // different response schema and may incorrectly reject a valid reverse hit.
   return {
-    ...verification,
+    ...result,
     postcode: result.postcode,
     verified: true,
     coordinatesMatch: true,
@@ -625,12 +611,10 @@ export async function lookupDigitalPostcodeByCoordinates(
       reverseDistance === null
         ? null
         : Math.round(reverseDistance),
-    confidence: result.confidence || verification.confidence || null,
-    displayName: result.displayName || verification.displayName || null,
     status: "verified_location_match",
     message:
       reverseDistance !== null
-        ? `NIPOST confirmed this postcode ${Math.round(reverseDistance)}m from the GPS point.`
-        : `NIPOST resolved and verified this postcode from GPS within the requested ${radius}m search radius.`,
+        ? `NIPOST found this postcode ${Math.round(reverseDistance)}m from the GPS point.`
+        : `NIPOST matched this postcode to the captured GPS location within the requested ${radius}m search radius.`,
   };
 }

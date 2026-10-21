@@ -1360,12 +1360,25 @@ app.get("/api/postcode/lookup-by-coordinates", async (req, res) => {
     );
     return res.json(result);
   } catch (error) {
+    if (
+      error?.code === "NIPOST_POSTCODE_NOT_FOUND" ||
+      error?.code === "NIPOST_LOCATION_MISMATCH"
+    ) {
+      return res.json({
+        verified: false,
+        postcode: null,
+        status: error.code,
+        error: error.message || "NIPOST did not confirm a building postcode at this GPS location.",
+      });
+    }
+
     const status = nipostHttpStatus(error);
     if (status >= 500) {
       console.warn("NIPOST coordinate lookup unavailable:", error.message);
     }
     return res.status(status).json({
       verified: false,
+      postcode: null,
       status: error.code || "nipost_lookup_failed",
       error: error.message || "NIPOST postcode lookup is unavailable.",
     });
@@ -1595,7 +1608,6 @@ app.post(
         city,
         state,
         country,
-        digitalPostcode,
       } = req.body;
 
       /* -----------------------------------------
@@ -1798,69 +1810,49 @@ app.post(
           : "gps+reverse-geocoding";
 
       /*
-       * Verify any supplied Digital Postcode with NIPOST.
-       * It remains optional for roads, drains and other assets
-       * that may not have a building-level postcode.
+       * The Digital Postcode is derived exclusively from the verified GPS
+       * coordinates on the server. Never trust a postcode supplied by the
+       * client. Building-level postcode coverage is optional; if NIPOST has
+       * no confirmed match or is temporarily unavailable, submit the report
+       * without a postcode rather than inventing one or blocking the report.
        */
       let postcodeRecord = {
         digitalPostcode: null,
         postcodeVerified: false,
-        postcodeStatus: "not_provided",
+        postcodeStatus: "not_found",
         postcodeLocationMatch: null,
         postcodeDistanceMeters: null,
         postcodeLocationLabel: null,
         postcodeVerifiedAt: null,
       };
 
-      const submittedPostcode =
-        typeof digitalPostcode === "string"
-          ? digitalPostcode.trim().toUpperCase().replace(/[\s-]/g, "")
-          : "";
+      try {
+        const postcodeLookup = await lookupDigitalPostcodeByCoordinates(
+          parsedLatitude,
+          parsedLongitude
+        );
 
-      if (submittedPostcode) {
-        let postcodeVerification;
-
-        try {
-          postcodeVerification = await verifyDigitalPostcode(
-            submittedPostcode,
-            {
-              latitude: parsedLatitude,
-              longitude: parsedLongitude,
-            }
-          );
-        } catch (postcodeError) {
-          const status = nipostHttpStatus(postcodeError);
-          return res.status(status).json({
-            error:
-              "CivicPort could not verify the supplied Digital Postcode. Retry verification or remove the postcode and submit the GPS-identified report.",
-            postcodeStatus: postcodeError.code || "verification_unavailable",
-          });
+        if (postcodeLookup?.verified && postcodeLookup?.postcode) {
+          postcodeRecord = {
+            digitalPostcode: postcodeLookup.postcode,
+            postcodeVerified: true,
+            postcodeStatus: postcodeLookup.status || "verified_location_match",
+            postcodeLocationMatch: true,
+            postcodeDistanceMeters:
+              Number.isFinite(postcodeLookup.distanceFromGpsMeters)
+                ? Math.round(postcodeLookup.distanceFromGpsMeters)
+                : null,
+            postcodeLocationLabel: postcodeLookup.displayName || null,
+            postcodeVerifiedAt: new Date(),
+          };
         }
-
-        if (!postcodeVerification.verified) {
-          return res.status(422).json({
-            error:
-              postcodeVerification.error ||
-              "The supplied Digital Postcode could not be verified with NIPOST.",
-            postcodeStatus: postcodeVerification.status || "not_verified",
-          });
-        }
-
-        postcodeRecord = {
-          digitalPostcode: postcodeVerification.postcode,
-          postcodeVerified: true,
-          postcodeStatus: postcodeVerification.status || "verified",
-          postcodeLocationMatch:
-            typeof postcodeVerification.coordinatesMatch === "boolean"
-              ? postcodeVerification.coordinatesMatch
-              : null,
-          postcodeDistanceMeters:
-            Number.isFinite(postcodeVerification.distanceFromGpsMeters)
-              ? Math.round(postcodeVerification.distanceFromGpsMeters)
-              : null,
-          postcodeLocationLabel: postcodeVerification.displayName || null,
-          postcodeVerifiedAt: new Date(),
-        };
+      } catch (postcodeError) {
+        postcodeRecord.postcodeStatus =
+          postcodeError?.code || "lookup_unavailable";
+        console.info(
+          "Automatic NIPOST postcode lookup unavailable during report submission:",
+          postcodeError?.message || "Unknown NIPOST lookup error."
+        );
       }
 
       /* -----------------------------------------
