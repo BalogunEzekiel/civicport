@@ -1,6 +1,6 @@
 # CivicPort
 
-A polished 3MTT NextGen Capstone civic issue reporting platform.
+CivicPort is an AI-powered civic reporting innovation that connects citizens with government (departments) to report, track, and resolve damaged/faulty/deterorating public infrastructure/facilities transparently.
 
 **Report → Locate → Track → Resolve**
 
@@ -40,7 +40,7 @@ A polished 3MTT NextGen Capstone civic issue reporting platform.
 
 `Submitted → Under Review → Assigned → In Progress → Resolved`
 
-A report can also be `Rejected`.
+A report can also be `Rejected`, if it didnt fall under the scope of Civicport solution. 
 
 ## Requirements
 
@@ -104,7 +104,7 @@ Images are stored in `server/uploads` for local development. A production versio
 
 ## Database
 
-SQLite is selected for capstone simplicity. Prisma makes migration to PostgreSQL straightforward.
+Prisma makes migration to PostgreSQL straightforward.
 
 ## Deployment
 
@@ -120,11 +120,13 @@ The frontend and backend can be deployed separately. For a simple production set
 1. Open the public dashboard.
 2. Submit a pothole report with an image and location.
 3. Open `/admin`.
-4. Change the report from Submitted to Under Review.
-5. Assign Works & Infrastructure.
-6. Change it to In Progress and add a public update.
-7. Change it to Resolved and add a completion note.
-8. Open the public report and show the complete timeline.
+4. Run AI Co-Pilot Ananlysis
+5. Update the report from Submitted to Under Review.
+6. Assign Works & Infrastructure.
+7. Run AI Executive Summary Brief to generate data analysis, identify duplicated reports, public note recommendation
+8. Update it to In Progress and add a public update.
+9. Update it to Resolved and add a completion note.
+10. Open the public report and show the complete timeline.
 
 ## Project structure
 
@@ -214,11 +216,12 @@ The report form:
 1. Requests precise browser/device location over HTTPS.
 2. Uses `watchPosition()` to observe multiple GPS readings and retain the strongest fix.
 3. Rejects GPS readings worse than 100 metres for report submission.
-4. Sends coordinates to the CivicPort API for independent server-side reverse geocoding.
-5. Requires the reverse geocoder to identify a street/road before the report can be submitted.
-6. Shows the detected street/address, area and GPS accuracy to the citizen for confirmation.
-7. Blocks submission unless the location is verified and explicitly confirmed.
-8. Re-verifies the coordinates on the backend during report creation; the browser-supplied location label is never trusted as the authoritative address.
+4. Automatic detection of postcode
+5. Sends coordinates to the CivicPort API for independent server-side reverse geocoding.
+6. Requires the reverse geocoder to identify a street/road before the report can be submitted.
+7. Shows the detected street/address, area and GPS accuracy to the citizen for confirmation.
+8. Blocks submission unless the location is verified and explicitly confirmed.
+9. Re-verifies the coordinates on the backend during report creation; the browser-supplied location label is never trusted as the authoritative address.
 
 The database stores the verified street/address components, coordinates, accuracy, verification state and location source for downstream civic intelligence, routing and prioritization.
 
