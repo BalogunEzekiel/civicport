@@ -1,6 +1,6 @@
 # CivicPort
 
-CivicPort is an AI-powered civic reporting innovation that connects citizens with government (departments) to report, track, and resolve damaged/faulty/deterorating public infrastructure/facilities transparently.
+CivicPort is an AI-powered civic reporting intelligent platform that connects citizens with government/agencies/ministries/departments, enabling them to report, track, and transparently resolve issues involving damaged, faulty or deteriorating public infrastructure and facilities.
 
 **Report → Locate → Track → Resolve**
 
